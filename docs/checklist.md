@@ -18,9 +18,9 @@ This checklist tracks the work required to deliver the consolidated implementati
 - [x] Ensure interactive mode respects configuration defaults (theme, filter, verbosity).
 
 ## Phase 4 – Watch & Snapshot Enhancements
-- [ ] Merge FileSystemWatcher pipeline with new engine and TUI refresh cycle.
-- [ ] Support `--baseline` comparisons without requiring physical right-hand directory.
-- [ ] Surface watch status and baseline metadata in both CLI and TUI outputs.
+- [x] Merge FileSystemWatcher pipeline with new engine and TUI refresh cycle.
+- [x] Support `--baseline` comparisons without requiring physical right-hand directory.
+- [x] Surface watch status and baseline metadata in both CLI and TUI outputs.
 
 ## Phase 5 – Testing & Polishing
 - [ ] Author unit tests for configuration resolution, exporter selection, and diff-tool invocation.

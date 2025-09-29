@@ -5,7 +5,7 @@ namespace ParallelCompare.Core.Options;
 public sealed record CompareSettingsInput
 {
     public required string LeftPath { get; init; }
-    public required string RightPath { get; init; }
+    public string? RightPath { get; init; }
     public string? Mode { get; init; }
     public string? Algorithm { get; init; }
     public ImmutableArray<string> AdditionalAlgorithms { get; init; } = ImmutableArray<string>.Empty;

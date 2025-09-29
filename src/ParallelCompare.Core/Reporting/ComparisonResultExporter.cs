@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
 using ParallelCompare.Core.Comparison;
 
 namespace ParallelCompare.Core.Reporting;
@@ -35,7 +36,14 @@ public sealed class ComparisonResultExporter
             LeftPath = result.LeftPath,
             RightPath = result.RightPath,
             Root = ToSerializable(result.Root),
-            Summary = result.Summary
+            Summary = result.Summary,
+            Baseline = result.Baseline is null ? null : new SerializableBaselineMetadata
+            {
+                ManifestPath = result.Baseline.ManifestPath,
+                SourcePath = result.Baseline.SourcePath,
+                CreatedAt = result.Baseline.CreatedAt,
+                Algorithms = result.Baseline.Algorithms.Select(a => a.ToString()).ToArray()
+            }
         };
     }
 
@@ -67,6 +75,7 @@ public sealed class ComparisonResultExporter
         public required string RightPath { get; init; }
         public required SerializableComparisonNode Root { get; init; }
         public required ComparisonSummary Summary { get; init; }
+        public SerializableBaselineMetadata? Baseline { get; init; }
     }
 
     private sealed record SerializableComparisonNode
@@ -88,5 +97,13 @@ public sealed class ComparisonResultExporter
         public Dictionary<string, string>? LeftHashes { get; init; }
         public Dictionary<string, string>? RightHashes { get; init; }
         public string? ErrorMessage { get; init; }
+    }
+
+    private sealed record SerializableBaselineMetadata
+    {
+        public required string ManifestPath { get; init; }
+        public required string SourcePath { get; init; }
+        public required DateTimeOffset CreatedAt { get; init; }
+        public string[]? Algorithms { get; init; }
     }
 }

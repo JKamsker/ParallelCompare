@@ -29,8 +29,13 @@ public sealed class CompareSettingsResolver
 
         var left = input.LeftPath ?? profile?.Left ?? defaults.Left
             ?? throw new InvalidOperationException("Left path must be specified either via CLI or configuration.");
-        var right = input.RightPath ?? profile?.Right ?? defaults.Right
-            ?? throw new InvalidOperationException("Right path must be specified either via CLI or configuration.");
+        var right = input.RightPath ?? profile?.Right ?? defaults.Right;
+        var baseline = input.BaselinePath ?? profile?.Baseline ?? defaults.Baseline;
+
+        if (string.IsNullOrWhiteSpace(right) && string.IsNullOrWhiteSpace(baseline))
+        {
+            throw new InvalidOperationException("Right path must be specified either via CLI or configuration unless a baseline manifest is provided.");
+        }
 
         var mode = ParseMode(input.Mode ?? profile?.Mode ?? defaults.Mode);
         var algorithms = ResolveAlgorithms(input, profile, defaults, mode);
@@ -39,7 +44,7 @@ public sealed class CompareSettingsResolver
         return new ResolvedCompareSettings
         {
             LeftPath = Path.GetFullPath(left),
-            RightPath = Path.GetFullPath(right),
+            RightPath = string.IsNullOrWhiteSpace(right) ? null : Path.GetFullPath(right),
             Mode = mode,
             Algorithms = algorithms,
             IgnorePatterns = ignore,
@@ -49,7 +54,7 @@ public sealed class CompareSettingsResolver
                 ?? ToTimeSpan(profile?.MTimeToleranceSeconds)
                 ?? ToTimeSpan(defaults.MTimeToleranceSeconds),
             Threads = input.Threads ?? profile?.Threads ?? defaults.Threads,
-            BaselinePath = input.BaselinePath ?? profile?.Baseline ?? defaults.Baseline,
+            BaselinePath = string.IsNullOrWhiteSpace(baseline) ? null : Path.GetFullPath(baseline),
             JsonReportPath = input.JsonReportPath ?? profile?.JsonReport ?? defaults.JsonReport,
             SummaryReportPath = input.SummaryReportPath ?? profile?.SummaryReport ?? defaults.SummaryReport,
             ExportFormat = input.ExportFormat ?? profile?.ExportFormat ?? defaults.ExportFormat,
@@ -65,7 +70,9 @@ public sealed class CompareSettingsResolver
                 ?? defaults.InteractiveVerbosity
                 ?? input.Verbosity
                 ?? profile?.Verbosity
-                ?? defaults.Verbosity
+                ?? defaults.Verbosity,
+            UsesBaseline = false,
+            BaselineMetadata = null
         };
     }
 

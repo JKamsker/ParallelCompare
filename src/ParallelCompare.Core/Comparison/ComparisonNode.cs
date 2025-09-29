@@ -53,5 +53,13 @@ public sealed record ComparisonResult(
     string LeftPath,
     string RightPath,
     ComparisonNode Root,
-    ComparisonSummary Summary
+    ComparisonSummary Summary,
+    BaselineMetadata? Baseline = null
+);
+
+public sealed record BaselineMetadata(
+    string ManifestPath,
+    string SourcePath,
+    DateTimeOffset CreatedAt,
+    ImmutableArray<HashAlgorithmType> Algorithms
 );

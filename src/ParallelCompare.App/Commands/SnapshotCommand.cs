@@ -23,9 +23,10 @@ public sealed class SnapshotCommand : AsyncCommand<SnapshotCommandSettings>
             return 2;
         }
 
-        var input = _orchestrator.BuildInput(settings) with
+        var baseInput = _orchestrator.BuildInput(settings);
+        var input = baseInput with
         {
-            JsonReportPath = settings.Output
+            RightPath = baseInput.LeftPath
         };
 
         using var cancellation = new CancellationTokenSource();
@@ -45,8 +46,8 @@ public sealed class SnapshotCommand : AsyncCommand<SnapshotCommandSettings>
             };
             Console.CancelKeyPress += handler;
 
-            await _orchestrator.RunAsync(input, cancellation.Token);
-            AnsiConsole.MarkupLine($"[green]Snapshot written to {settings.Output}.[/]");
+            var manifest = await _orchestrator.CreateSnapshotAsync(input, settings.Output, cancellation.Token);
+            AnsiConsole.MarkupLine($"[green]Snapshot written to {settings.Output} (captured {manifest.CreatedAt:u}).[/]");
             return 0;
         }
         catch (OperationCanceledException)

@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using ParallelCompare.App.Services;
 using ParallelCompare.Core.Comparison;
@@ -36,6 +37,12 @@ public sealed class InteractiveCompareSession
     private readonly List<HashAlgorithmType> _algorithmTypes = new();
     private readonly List<string> _algorithmNames = new();
     private int _activeAlgorithmIndex;
+    private readonly Channel<Func<Task>> _actionQueue = Channel.CreateUnbounded<Func<Task>>(new UnboundedChannelOptions
+    {
+        AllowSynchronousContinuations = true,
+        SingleReader = true,
+        SingleWriter = false
+    });
 
     public InteractiveCompareSession(ComparisonOrchestrator orchestrator, DiffToolLauncher diffLauncher)
     {
@@ -47,7 +54,8 @@ public sealed class InteractiveCompareSession
         ComparisonResult result,
         CompareSettingsInput input,
         ResolvedCompareSettings resolved,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? initialStatusMessage = null)
     {
         _result = result;
         _input = input with { EnableInteractive = true };
@@ -58,7 +66,7 @@ public sealed class InteractiveCompareSession
         _verbosity = InteractiveVerbosityExtensions.Parse(resolved.InteractiveVerbosity);
         _showHelp = false;
         _paused = false;
-        _statusMessage = null;
+        _statusMessage = initialStatusMessage;
         _lastRunAt = DateTimeOffset.UtcNow;
 
         UpdateAlgorithmList(_input.Algorithm);
@@ -88,17 +96,33 @@ public sealed class InteractiveCompareSession
                 if (_cancellationToken.IsCancellationRequested)
                 {
                     SetStatus("Cancellation requested.");
+                    Render();
                     break;
                 }
 
-                var key = Console.ReadKey(intercept: true);
-                if (await HandleKeyAsync(key))
+                if (await DrainPendingActionsAsync())
                 {
-                    break;
+                    continue;
                 }
 
-                Render();
+                if (TryReadKey(out var key))
+                {
+                    if (await HandleKeyAsync(key))
+                    {
+                        break;
+                    }
+
+                    Render();
+                    continue;
+                }
+
+                await WaitForNextSignalAsync();
             }
+        }
+        catch (OperationCanceledException)
+        {
+            SetStatus("Cancellation requested.");
+            Render();
         }
         finally
         {
@@ -108,6 +132,32 @@ public sealed class InteractiveCompareSession
                 Console.CursorVisible = previousCursor;
 #pragma warning restore CA1416
             }
+
+            _actionQueue.Writer.TryComplete();
+        }
+    }
+
+    public async ValueTask<bool> QueueWatchRefreshAsync(string refreshedMessage, string pausedMessage)
+    {
+        try
+        {
+            await _actionQueue.Writer.WriteAsync(async () =>
+            {
+                if (_paused)
+                {
+                    SetStatus(pausedMessage);
+                    return;
+                }
+
+                await ReRunComparisonAsync(static input => input);
+                SetStatus(refreshedMessage);
+            });
+
+            return true;
+        }
+        catch (ChannelClosedException)
+        {
+            return false;
         }
     }
 
@@ -180,6 +230,53 @@ public sealed class InteractiveCompareSession
         return false;
     }
 
+    private async Task<bool> DrainPendingActionsAsync()
+    {
+        var executed = false;
+
+        while (_actionQueue.Reader.TryRead(out var action))
+        {
+            executed = true;
+            await action();
+        }
+
+        if (executed)
+        {
+            Render();
+        }
+
+        return executed;
+    }
+
+    private async Task WaitForNextSignalAsync()
+    {
+        var waitTask = _actionQueue.Reader.WaitToReadAsync(_cancellationToken).AsTask();
+        var delayTask = Task.Delay(100, _cancellationToken);
+
+        var completed = await Task.WhenAny(waitTask, delayTask);
+        await completed;
+    }
+
+    private static bool TryReadKey(out ConsoleKeyInfo key)
+    {
+        key = default;
+
+        try
+        {
+            if (!Console.KeyAvailable)
+            {
+                return false;
+            }
+
+            key = Console.ReadKey(intercept: true);
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
+    }
+
     private void Render()
     {
         AnsiConsole.Clear();
@@ -215,9 +312,24 @@ public sealed class InteractiveCompareSession
         grid.AddColumn(new GridColumn().Width(Math.Max(20, Math.Min(AnsiConsole.Profile.Width / 2, 60))));
         grid.AddColumn();
 
+        var rightLabel = _result.Baseline is { } baseline
+            ? $"[bold]{Markup.Escape(baseline.SourcePath)}[/] (baseline)"
+            : $"[bold]{Markup.Escape(_result.RightPath)}[/]";
+
         grid.AddRow(
             new Markup($"[bold]{Markup.Escape(_result.LeftPath)}[/]"),
-            new Markup($"[bold]{Markup.Escape(_result.RightPath)}[/]"));
+            new Markup(rightLabel));
+
+        if (_result.Baseline is { } baselineInfo)
+        {
+            var algorithms = baselineInfo.Algorithms.IsDefaultOrEmpty
+                ? "-"
+                : string.Join(", ", baselineInfo.Algorithms.Select(a => a.ToString().ToUpperInvariant()));
+
+            grid.AddRow(
+                new Markup($"Manifest: {Markup.Escape(baselineInfo.ManifestPath)}"),
+                new Markup($"Captured: {baselineInfo.CreatedAt:u}  Algorithms: {Markup.Escape(algorithms)}"));
+        }
 
         grid.AddRow(
             new Markup($"Mode: [ {_theme.Accent}]{_resolved.Mode}[/]  Algorithm: [ {_theme.Accent}]{activeAlgorithm}[/]  Threads: {FormatThreads()}"),

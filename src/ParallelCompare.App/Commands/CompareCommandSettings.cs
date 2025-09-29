@@ -8,8 +8,8 @@ public class CompareCommandSettings : CommandSettings
     [CommandArgument(0, "<left>")]
     public string Left { get; init; } = string.Empty;
 
-    [CommandArgument(1, "<right>")]
-    public string Right { get; init; } = string.Empty;
+    [CommandArgument(1, "[right]")]
+    public string? Right { get; init; }
 
     [CommandOption("-t|--threads")]
     public int? Threads { get; init; }

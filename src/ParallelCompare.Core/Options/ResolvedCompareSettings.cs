@@ -1,11 +1,12 @@
 using System.Collections.Immutable;
+using ParallelCompare.Core.Comparison;
 
 namespace ParallelCompare.Core.Options;
 
 public sealed record ResolvedCompareSettings
 {
     public required string LeftPath { get; init; }
-    public required string RightPath { get; init; }
+    public string? RightPath { get; init; }
     public ComparisonMode Mode { get; init; }
     public ImmutableArray<HashAlgorithmType> Algorithms { get; init; } = ImmutableArray<HashAlgorithmType>.Empty;
     public ImmutableArray<string> IgnorePatterns { get; init; } = ImmutableArray<string>.Empty;
@@ -25,4 +26,6 @@ public sealed record ResolvedCompareSettings
     public string? InteractiveTheme { get; init; }
     public string? InteractiveFilter { get; init; }
     public string? InteractiveVerbosity { get; init; }
+    public bool UsesBaseline { get; init; }
+    public BaselineMetadata? BaselineMetadata { get; init; }
 }
