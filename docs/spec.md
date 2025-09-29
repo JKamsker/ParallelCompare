@@ -2,7 +2,12 @@
 
 ## 0) High-level
 
-* **Purpose**: Fast, multi-threaded, channel-based folder comparison.
+* **Purpose**: Fast, multi-threaded, * "Deep dive a directory": select folder → `Enter` to expand → choose file → view both sides' metadata.
+* "Re-hash only this dir with SHA-256": select dir → `A` → choose `sha256` → re-queue subset.
+
+**Note**: `--json`, `--summary`, and `--no-progress` flags are ignored in interactive mode. Export functionality is available via the `E` key within the interactive interface.
+
+---nel-based folder comparison.
 * **Faces**:
 
   * **CLI** for automation/CI and scripted runs.
@@ -17,13 +22,13 @@
 * **Dotnet tool**:
   `dotnet tool install -g FsEqual.Tool` → invokes `fsequal`
 * **Single-file binaries** (Win/macOS/Linux): unzip → `./fsequal`
-* **Help**: `fsequal --help` (Spectre rich help), `fsequal tui --help`, `fsequal compare --help`
+* **Help**: `fsequal --help` (Spectre rich help), `fsequal compare --help`
 
 ---
 
 ## 2) Modes
 
-### A) CLI Mode (non-interactive)
+### A) Compare Command (CLI & Interactive)
 
 Primary command: `compare`
 
@@ -39,18 +44,19 @@ fsequal compare <left> <right>
   [--json <path>]                     # detailed machine-readable report
   [--summary <path>]                  # small summary JSON
   [--no-progress]                     # disable live progress bars
+  [--interactive]                     # launch interactive TUI mode
   [--timeout <seconds>]
   [--fail-on <any|diff|error>]        # maps to exit codes
   [--profile <name>] [--config <file>]
 ```
 
-**Exit codes**
+**Exit codes** (non-interactive mode only)
 
 * `0` Equal
 * `1` Differences found (no fatal errors)
 * `2` Runtime error / aborted (IO error, cancellation, etc.)
 
-**Typical runs**
+**Typical runs** (non-interactive)
 
 * Fast sanity check, default threads & algo:
   `fsequal compare ./A ./B`
@@ -60,8 +66,10 @@ fsequal compare <left> <right>
   `fsequal compare ./A ./B -m quick --mtime-tolerance 2`
 * Machine output for CI:
   `fsequal compare ./A ./B --json out/report.json --summary out/summary.json --no-progress -v warn`
+* Interactive exploration:
+  `fsequal compare ./A ./B --interactive`
 
-**CLI Output UX (Spectre.Console)**
+**CLI Output UX (Spectre.Console)** (non-interactive)
 
 * Live **progress**: tasks for Enumerate, Queue, Hashing, Aggregation.
 * Final **panel** with totals: files compared / equal / diffs / missing / errors / duration.
@@ -75,22 +83,17 @@ fsequal compare <left> <right>
 
 ---
 
-### B) TUI Mode (interactive)
+### B) Interactive Mode (--interactive)
 
-Command: `tui`
+When `--interactive` flag is used with the `compare` command, the tool launches an interactive TUI interface.
 
 ```
-fsequal tui <left> <right>
-  [-t|--threads <int>]
-  [-a|--algo <crc32|md5|sha256|xxh64>]
-  [-m|--mode <quick|hash>]
-  [-i|--ignore <glob>...]
-  [--case-sensitive] [--follow-symlinks]
-  [-v|--verbosity <...>]
-  [--profile <name>] [--config <file>]
+fsequal compare <left> <right> --interactive [other options...]
 ```
 
-**TUI Layout (Spectre.Console)**
+All comparison options (`-t`, `-a`, `-m`, `-i`, etc.) work the same as non-interactive mode.
+
+**Interactive Layout (Spectre.Console)**
 
 * **Header**: left/right paths, algo, mode, workers, elapsed.
 * **Left pane (Tree)**: directory tree with status glyphs:
@@ -112,7 +115,7 @@ fsequal tui <left> <right>
   * `Q` quit, `?` help
 * **Live progress** bar cluster at top or bottom; errors appear in a collapsible log panel.
 
-**TUI Workflows**
+**Interactive Workflows**
 
 * “Just show me diffs”: start → press `F` → pick `Diff!=None` → browse.
 * “Deep dive a directory”: select folder → `Enter` to expand → choose file → view both sides’ metadata.
@@ -138,20 +141,20 @@ fsequal tui <left> <right>
 * **Channels**: bounded; pipeline stages: enumerate → queue → N hash workers → aggregate.
 * **Short-circuit**: size mismatch avoids hashing.
 * **Large files**: read in 128–256 KiB blocks; async IO.
-* **Cancellation**: `--timeout` or Ctrl+C → graceful drain.
+* **Cancellation**: `--timeout` or Ctrl+C → graceful drain (in interactive mode, Ctrl+C or `Q` key).
 
 ---
 
 ## 5) Logging & Verbosity
 
 * Levels: `trace|debug|info|warn|error`.
-* **CLI**:
+* **Non-interactive**:
 
   * `info`: progress + final table + key differences
   * `warn`: suppress routine info; show anomalies (skipped/permission)
   * `error`: only errors + summary
   * `debug/trace`: per-file decisions (heavy; for diagnosing)
-* **TUI**: Log panel with filter; same levels.
+* **Interactive**: Log panel with filter; same levels. Cycle verbosity with `L` key.
 
 ---
 
@@ -160,9 +163,9 @@ fsequal tui <left> <right>
 * **Console**: Spectre tables/panels/markup.
 * **Files**:
 
-  * `--json`: full per-file results (status, reason, sizes, hashes if computed).
-  * `--summary`: totals + config (good for dashboards).
-  * TUI `E` export: `json|csv|md` for the current filtered view.
+  * `--json`: full per-file results (status, reason, sizes, hashes if computed) - non-interactive only.
+  * `--summary`: totals + config (good for dashboards) - non-interactive only.
+  * Interactive `E` export: `json|csv|md` for the current filtered view.
 * **Determinism**: sorted by relative path in exports.
 
 ---
@@ -236,13 +239,13 @@ fsequal compare ./release-A ./release-B -i "**/docs/**" -v info --fail-on any
 
 ## 11) UX Details (Spectre bits)
 
-**CLI visuals**
+**Non-interactive visuals**
 
 * Progress: `Progress().AutoClear(false).Columns(new TaskDescriptionColumn(), new ProgressBarColumn(), new PercentageColumn(), new ElapsedTimeColumn(), new RemainingTimeColumn())`
 * Tables: `Table` for differences (truncate to N rows, print hint to `--json` for full list).
 * Panels: Summary panel with stats & emoji status (why not a little sparkle).
 
-**TUI visuals**
+**Interactive visuals**
 
 * Tree view: glyphs for status; color-coded nodes.
 * Hotkeys overlay (`?`) uses Spectre’s key capture.
@@ -260,7 +263,7 @@ fsequal compare ./release-A ./release-B -i "**/docs/**" -v info --fail-on any
 
 ## 13) Roadmap
 
-* **V1**: CLI + TUI, CRC32/MD5/SHA-256, ignores, profiles, JSON export, multi-thread.
+* **V1**: CLI + interactive mode (--interactive), CRC32/MD5/SHA-256, ignores, profiles, JSON export, multi-thread.
 * **V1.1**: XXH64 plugin, include globs, `.gitignore` opt-in, blockwise byte-compare pre-hash.
 * **V1.2**: Remote compare (hash stream over gRPC/SSH), permissions/ACL compare opt-in.
 * **V2**: Snapshot manifests, change reports, watch mode.
@@ -274,14 +277,13 @@ fsEqual/
   src/
     FsEqual.Cli/                 # Spectre.Console.Cli commands
       Commands/
-        CompareCommand.cs        # CLI pipeline runner + outputs
-        TuiCommand.cs            # TUI host (interactive)
+        CompareCommand.cs        # CLI pipeline runner + outputs (handles --interactive)
         AlgosCommand.cs
       Options/
         CompareSettings.cs
       Ui/
-        CliRenderers.cs
-        TuiScreens.cs
+        CliRenderers.cs          # Non-interactive output
+        InteractiveScreens.cs    # Interactive mode screens
     FsEqual.Core/                # Pipeline + domain
       Pipeline/ (channels)
       Hashing/ (IContentHasher + built-ins)
@@ -314,10 +316,10 @@ fsEqual/
   ```
   fsequal compare A B -m quick --mtime-tolerance 2
   ```
-* Interactive TUI:
+* Interactive mode:
 
   ```
-  fsequal tui A B
+  fsequal compare A B --interactive
   ```
 * Export machine-readable report:
 
