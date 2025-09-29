@@ -3,9 +3,9 @@
 This checklist tracks the work required to deliver the consolidated implementation described in `docs/consolidated-implementation.md`.
 
 ## Phase 1 – Foundation Merge
-- [ ] Import jzl3qc command modules (`compare`, `watch`, `snapshot`, `completion`).
-- [ ] Integrate configuration/profile resolver from base spec implementation.
-- [ ] Standardize shared option set and exit codes across commands.
+- [x] Import jzl3qc command modules (`compare`, `watch`, `snapshot`, `completion`).
+- [x] Integrate configuration/profile resolver from base spec implementation.
+- [x] Standardize shared option set and exit codes across commands.
 
 ## Phase 2 – Tree Model Integration
 - [ ] Replace flat comparison records with hierarchical `ComparisonNode` data model.
