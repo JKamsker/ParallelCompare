@@ -55,9 +55,17 @@ public sealed class CompareSettingsResolver
             ExportFormat = input.ExportFormat ?? profile?.ExportFormat ?? defaults.ExportFormat,
             NoProgress = input.NoProgress || profile?.NoProgress == true || defaults.NoProgress == true,
             DiffTool = input.DiffTool ?? profile?.DiffTool ?? defaults.DiffTool,
-            Verbosity = input.Verbosity,
+            Verbosity = input.Verbosity ?? profile?.Verbosity ?? defaults.Verbosity,
             FailOn = input.FailOn,
-            Timeout = input.Timeout
+            Timeout = input.Timeout,
+            InteractiveTheme = input.InteractiveTheme ?? profile?.InteractiveTheme ?? defaults.InteractiveTheme,
+            InteractiveFilter = input.InteractiveFilter ?? profile?.InteractiveFilter ?? defaults.InteractiveFilter,
+            InteractiveVerbosity = input.InteractiveVerbosity
+                ?? profile?.InteractiveVerbosity
+                ?? defaults.InteractiveVerbosity
+                ?? input.Verbosity
+                ?? profile?.Verbosity
+                ?? defaults.Verbosity
         };
     }
 

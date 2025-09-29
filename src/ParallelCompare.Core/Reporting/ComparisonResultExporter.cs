@@ -32,6 +32,8 @@ public sealed class ComparisonResultExporter
     {
         return new SerializableComparisonResult
         {
+            LeftPath = result.LeftPath,
+            RightPath = result.RightPath,
             Root = ToSerializable(result.Root),
             Summary = result.Summary
         };
@@ -61,6 +63,8 @@ public sealed class ComparisonResultExporter
 
     private sealed record SerializableComparisonResult
     {
+        public required string LeftPath { get; init; }
+        public required string RightPath { get; init; }
         public required SerializableComparisonNode Root { get; init; }
         public required ComparisonSummary Summary { get; init; }
     }

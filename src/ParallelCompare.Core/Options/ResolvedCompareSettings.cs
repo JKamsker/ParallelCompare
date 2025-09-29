@@ -22,4 +22,7 @@ public sealed record ResolvedCompareSettings
     public string? Verbosity { get; init; }
     public string? FailOn { get; init; }
     public TimeSpan? Timeout { get; init; }
+    public string? InteractiveTheme { get; init; }
+    public string? InteractiveFilter { get; init; }
+    public string? InteractiveVerbosity { get; init; }
 }

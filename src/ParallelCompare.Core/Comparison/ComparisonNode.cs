@@ -50,6 +50,8 @@ public sealed record ComparisonSummary(
 );
 
 public sealed record ComparisonResult(
+    string LeftPath,
+    string RightPath,
     ComparisonNode Root,
     ComparisonSummary Summary
 );

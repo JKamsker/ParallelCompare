@@ -54,7 +54,11 @@ public sealed class ComparisonEngine
             cancellationToken);
 
         var summary = Summarize(root);
-        return new ComparisonResult(root, summary);
+        return new ComparisonResult(
+            Path.GetFullPath(options.LeftPath),
+            Path.GetFullPath(options.RightPath),
+            root,
+            summary);
     }
 
     private ComparisonNode CompareDirectory(
@@ -69,6 +73,9 @@ public sealed class ComparisonEngine
         cancellationToken.ThrowIfCancellationRequested();
 
         var comparer = options.CaseSensitive ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
+        var updateSink = options.UpdateSink;
+
+        updateSink?.DirectoryDiscovered(relativePath, displayName);
 
         var leftEntries = EnumerateEntries(left, relativePath, matcher, comparer);
         var rightEntries = EnumerateEntries(right, relativePath, matcher, comparer);
@@ -99,6 +106,11 @@ public sealed class ComparisonEngine
                 matcher,
                 options,
                 cancellationToken);
+
+            if (updateSink is not null && item.Node is not null)
+            {
+                updateSink.NodeCompleted(item.Node);
+            }
         });
 
         var orderedChildren = workItems
@@ -107,13 +119,19 @@ public sealed class ComparisonEngine
             .ToImmutableArray();
 
         var status = DetermineDirectoryStatus(orderedChildren);
-        return new ComparisonNode(
+        var directoryNode = new ComparisonNode(
             displayName,
             relativePath,
             ComparisonNodeType.Directory,
             status,
             null,
             orderedChildren);
+
+        if (string.IsNullOrEmpty(relativePath))
+        {
+            updateSink?.NodeCompleted(directoryNode);
+        }
+        return directoryNode;
     }
 
     private ComparisonNode BuildNode(
@@ -167,7 +185,8 @@ public sealed class ComparisonEngine
                 leftDir,
                 ComparisonStatus.LeftOnly,
                 matcher,
-                cancellationToken);
+                cancellationToken,
+                options.UpdateSink);
         }
 
         if (rightDir is not null)
@@ -178,7 +197,8 @@ public sealed class ComparisonEngine
                 rightDir,
                 ComparisonStatus.RightOnly,
                 matcher,
-                cancellationToken);
+                cancellationToken,
+                options.UpdateSink);
         }
 
         return CompareFile(
@@ -554,9 +574,12 @@ public sealed class ComparisonEngine
         DirectoryInfo directory,
         ComparisonStatus status,
         Matcher? matcher,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IComparisonUpdateSink? updateSink)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        updateSink?.DirectoryDiscovered(relativePath, displayName);
 
         var children = new List<ComparisonNode>();
         foreach (var entry in directory.EnumerateFileSystemInfos())
@@ -572,13 +595,16 @@ public sealed class ComparisonEngine
 
             if (entry is DirectoryInfo childDirectory)
             {
-                children.Add(BuildSingleSideDirectory(
+                var childNode = BuildSingleSideDirectory(
                     entry.Name,
                     childRelativePath,
                     childDirectory,
                     status,
                     matcher,
-                    cancellationToken));
+                    cancellationToken,
+                    updateSink);
+                children.Add(childNode);
+                updateSink?.NodeCompleted(childNode);
             }
             else if (entry is FileInfo file)
             {
@@ -586,23 +612,27 @@ public sealed class ComparisonEngine
                     ? new FileComparisonDetail(file.Length, null, file.LastWriteTimeUtc, null, null, null, null)
                     : new FileComparisonDetail(null, file.Length, null, file.LastWriteTimeUtc, null, null, null);
 
-                children.Add(new ComparisonNode(
+                var fileNode = new ComparisonNode(
                     entry.Name,
                     childRelativePath,
                     ComparisonNodeType.File,
                     status,
                     detail,
-                    ImmutableArray<ComparisonNode>.Empty));
+                    ImmutableArray<ComparisonNode>.Empty);
+                children.Add(fileNode);
+                updateSink?.NodeCompleted(fileNode);
             }
         }
 
-        return new ComparisonNode(
+        var directoryNode = new ComparisonNode(
             displayName,
             relativePath,
             ComparisonNodeType.Directory,
             status,
             null,
             children.ToImmutableArray());
+
+        return directoryNode;
     }
 
     private ComparisonNode BuildTypeMismatchNode(

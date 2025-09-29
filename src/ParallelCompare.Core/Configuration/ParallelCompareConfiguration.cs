@@ -57,4 +57,16 @@ public class CompareProfile
 
     [JsonPropertyName("diffTool")]
     public string? DiffTool { get; init; }
+
+    [JsonPropertyName("verbosity")]
+    public string? Verbosity { get; init; }
+
+    [JsonPropertyName("interactiveTheme")]
+    public string? InteractiveTheme { get; init; }
+
+    [JsonPropertyName("interactiveFilter")]
+    public string? InteractiveFilter { get; init; }
+
+    [JsonPropertyName("interactiveVerbosity")]
+    public string? InteractiveVerbosity { get; init; }
 }
