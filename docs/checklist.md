@@ -29,6 +29,7 @@ This checklist tracks the work required to deliver the consolidated implementati
 
 ## Documentation & Release
 - [x] Produce consolidated implementation plan.
+- [x] Configure automated release workflow.
 - [ ] Update user documentation and quickstart guides once implementation stabilizes.
 - [ ] Prepare release notes and onboarding materials for the combined feature set.
 

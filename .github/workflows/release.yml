@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-and-verify:
+    name: Build and verify release artifacts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |-
+            8.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test --configuration Release --no-build --logger:"console;verbosity=minimal"
+
+      # - name: Publish to NuGet
+      #   env:
+      #     NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+      #   run: |
+      #     dotnet pack --configuration Release --no-build
+      #     dotnet nuget push "**/*.nupkg" \
+      #       --api-key "$NUGET_API_KEY" \
+      #       --source "https://api.nuget.org/v3/index.json" \
+      #       --skip-duplicate
