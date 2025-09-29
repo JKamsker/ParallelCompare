@@ -10,7 +10,7 @@ This checklist tracks the work required to deliver the consolidated implementati
 ## Phase 2 – Tree Model Integration
 - [x] Replace flat comparison records with hierarchical `ComparisonNode` data model.
 - [x] Adapt exporters and summaries to consume the tree structure.
-- [ ] Implement adapters to stream engine updates into tree nodes for live updates.
+- [x] Implement adapters to stream engine updates into tree nodes for live updates.
 
 ## Phase 3 – Interactive Experience Upgrade
 - [ ] Embed Spectre.Console TUI from ehgdxp implementation.

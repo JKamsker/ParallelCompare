@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using ParallelCompare.Core.Comparison;
 
 namespace ParallelCompare.Core.Options;
 
@@ -20,5 +21,6 @@ public sealed record ComparisonOptions
     public string? ExportFormat { get; init; }
     public bool NoProgress { get; init; }
     public string? DiffTool { get; init; }
+    public IComparisonProgressSink? ProgressSink { get; init; }
     public CancellationToken CancellationToken { get; init; } = CancellationToken.None;
 }

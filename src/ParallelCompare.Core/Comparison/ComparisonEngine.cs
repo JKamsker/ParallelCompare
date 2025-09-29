@@ -54,6 +54,7 @@ public sealed class ComparisonEngine
             cancellationToken);
 
         var summary = Summarize(root);
+        options.ProgressSink?.Completed(summary);
         return new ComparisonResult(root, summary);
     }
 
@@ -67,6 +68,18 @@ public sealed class ComparisonEngine
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        if (options.ProgressSink is not null)
+        {
+            var placeholder = new ComparisonNode(
+                displayName,
+                relativePath,
+                ComparisonNodeType.Directory,
+                ComparisonStatus.Equal,
+                null,
+                ImmutableArray<ComparisonNode>.Empty);
+            PublishProgress(placeholder, options, isFinal: false);
+        }
 
         var comparer = options.CaseSensitive ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
 
@@ -107,13 +120,14 @@ public sealed class ComparisonEngine
             .ToImmutableArray();
 
         var status = DetermineDirectoryStatus(orderedChildren);
-        return new ComparisonNode(
+        var node = new ComparisonNode(
             displayName,
             relativePath,
             ComparisonNodeType.Directory,
             status,
             null,
             orderedChildren);
+        return PublishProgress(node, options, isFinal: true);
     }
 
     private ComparisonNode BuildNode(
@@ -146,6 +160,7 @@ public sealed class ComparisonEngine
                 item.RelativePath,
                 leftDir,
                 rightFile,
+                options,
                 cancellationToken);
         }
 
@@ -156,6 +171,7 @@ public sealed class ComparisonEngine
                 item.RelativePath,
                 leftFile,
                 rightDir,
+                options,
                 cancellationToken);
         }
 
@@ -167,6 +183,7 @@ public sealed class ComparisonEngine
                 leftDir,
                 ComparisonStatus.LeftOnly,
                 matcher,
+                options,
                 cancellationToken);
         }
 
@@ -178,6 +195,7 @@ public sealed class ComparisonEngine
                 rightDir,
                 ComparisonStatus.RightOnly,
                 matcher,
+                options,
                 cancellationToken);
         }
 
@@ -220,7 +238,7 @@ public sealed class ComparisonEngine
 
         if (left is null)
         {
-            return new ComparisonNode(
+            var node = new ComparisonNode(
                 displayName,
                 relativePath,
                 ComparisonNodeType.File,
@@ -234,11 +252,12 @@ public sealed class ComparisonEngine
                     null,
                     null),
                 ImmutableArray<ComparisonNode>.Empty);
+            return PublishProgress(node, options, isFinal: true);
         }
 
         if (right is null)
         {
-            return new ComparisonNode(
+            var node = new ComparisonNode(
                 displayName,
                 relativePath,
                 ComparisonNodeType.File,
@@ -252,22 +271,24 @@ public sealed class ComparisonEngine
                     null,
                     null),
                 ImmutableArray<ComparisonNode>.Empty);
+            return PublishProgress(node, options, isFinal: true);
         }
 
         try
         {
             var status = CompareFileContents(left, right, options, cancellationToken, out var detail);
-            return new ComparisonNode(
+            var node = new ComparisonNode(
                 displayName,
                 relativePath,
                 ComparisonNodeType.File,
                 status,
                 detail,
                 ImmutableArray<ComparisonNode>.Empty);
+            return PublishProgress(node, options, isFinal: true);
         }
         catch (Exception ex)
         {
-            return new ComparisonNode(
+            var node = new ComparisonNode(
                 displayName,
                 relativePath,
                 ComparisonNodeType.File,
@@ -281,6 +302,7 @@ public sealed class ComparisonEngine
                     null,
                     ex.Message),
                 ImmutableArray<ComparisonNode>.Empty);
+            return PublishProgress(node, options, isFinal: true);
         }
     }
 
@@ -554,9 +576,22 @@ public sealed class ComparisonEngine
         DirectoryInfo directory,
         ComparisonStatus status,
         Matcher? matcher,
+        ComparisonOptions options,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        if (options.ProgressSink is not null)
+        {
+            var placeholder = new ComparisonNode(
+                displayName,
+                relativePath,
+                ComparisonNodeType.Directory,
+                status,
+                null,
+                ImmutableArray<ComparisonNode>.Empty);
+            PublishProgress(placeholder, options, isFinal: false);
+        }
 
         var children = new List<ComparisonNode>();
         foreach (var entry in directory.EnumerateFileSystemInfos())
@@ -578,6 +613,7 @@ public sealed class ComparisonEngine
                     childDirectory,
                     status,
                     matcher,
+                    options,
                     cancellationToken));
             }
             else if (entry is FileInfo file)
@@ -586,23 +622,26 @@ public sealed class ComparisonEngine
                     ? new FileComparisonDetail(file.Length, null, file.LastWriteTimeUtc, null, null, null, null)
                     : new FileComparisonDetail(null, file.Length, null, file.LastWriteTimeUtc, null, null, null);
 
-                children.Add(new ComparisonNode(
+                var node = new ComparisonNode(
                     entry.Name,
                     childRelativePath,
                     ComparisonNodeType.File,
                     status,
                     detail,
-                    ImmutableArray<ComparisonNode>.Empty));
+                    ImmutableArray<ComparisonNode>.Empty);
+
+                children.Add(PublishProgress(node, options, isFinal: true));
             }
         }
 
-        return new ComparisonNode(
+        var result = new ComparisonNode(
             displayName,
             relativePath,
             ComparisonNodeType.Directory,
             status,
             null,
             children.ToImmutableArray());
+        return PublishProgress(result, options, isFinal: true);
     }
 
     private ComparisonNode BuildTypeMismatchNode(
@@ -610,6 +649,7 @@ public sealed class ComparisonEngine
         string relativePath,
         FileSystemInfo left,
         FileSystemInfo right,
+        ComparisonOptions options,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -635,7 +675,7 @@ public sealed class ComparisonEngine
             ? "Left side is a directory while right side is a file."
             : "Left side is a file while right side is a directory.";
 
-        return new ComparisonNode(
+        var node = new ComparisonNode(
             displayName,
             relativePath,
             ComparisonNodeType.File,
@@ -649,6 +689,7 @@ public sealed class ComparisonEngine
                 null,
                 message),
             ImmutableArray<ComparisonNode>.Empty);
+        return PublishProgress(node, options, isFinal: true);
     }
 
     private static bool HashesEqual(
@@ -674,6 +715,12 @@ public sealed class ComparisonEngine
         }
 
         return true;
+    }
+
+    private static ComparisonNode PublishProgress(ComparisonNode node, ComparisonOptions options, bool isFinal)
+    {
+        options.ProgressSink?.Publish(new ComparisonNodeUpdate(node, isFinal));
+        return node;
     }
 
     private sealed class EntryWorkItem
