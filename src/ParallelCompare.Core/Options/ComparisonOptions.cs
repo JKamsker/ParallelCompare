@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using ParallelCompare.Core.Comparison;
+using ParallelCompare.Core.FileSystem;
 
 namespace ParallelCompare.Core.Options;
 
@@ -23,4 +24,5 @@ public sealed record ComparisonOptions
     public string? DiffTool { get; init; }
     public IComparisonUpdateSink? UpdateSink { get; init; }
     public CancellationToken CancellationToken { get; init; } = CancellationToken.None;
+    public IFileSystem FileSystem { get; init; } = PhysicalFileSystem.Instance;
 }

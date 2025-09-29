@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using ParallelCompare.Core.Comparison;
+using ParallelCompare.Core.FileSystem;
 
 namespace ParallelCompare.Core.Options;
 
@@ -28,4 +29,5 @@ public sealed record ResolvedCompareSettings
     public string? InteractiveVerbosity { get; init; }
     public bool UsesBaseline { get; init; }
     public BaselineMetadata? BaselineMetadata { get; init; }
+    public IFileSystem FileSystem { get; init; } = PhysicalFileSystem.Instance;
 }

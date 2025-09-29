@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.FileSystemGlobbing;
 using ParallelCompare.Core.Comparison;
 using ParallelCompare.Core.Comparison.Hashing;
+using ParallelCompare.Core.FileSystem;
 using ParallelCompare.Core.Options;
 
 namespace ParallelCompare.Core.Baselines;
@@ -30,7 +31,8 @@ public sealed class BaselineComparisonEngine
         var cancellationToken = options.CancellationToken;
         cancellationToken.ThrowIfCancellationRequested();
 
-        var directory = new DirectoryInfo(options.LeftPath);
+        var fileSystem = options.FileSystem ?? PhysicalFileSystem.Instance;
+        var directory = fileSystem.GetDirectory(options.LeftPath);
         if (!directory.Exists)
         {
             throw new DirectoryNotFoundException($"Left directory '{options.LeftPath}' was not found.");
@@ -65,7 +67,7 @@ public sealed class BaselineComparisonEngine
     private ComparisonNode CompareDirectory(
         string relativePath,
         string displayName,
-        DirectoryInfo directory,
+        IDirectoryEntry directory,
         BaselineEntry baseline,
         Matcher? matcher,
         BaselineComparisonOptions options,
@@ -91,7 +93,7 @@ public sealed class BaselineComparisonEngine
                 ? name
                 : Path.Combine(relativePath, name);
 
-            if (leftInfo is DirectoryInfo leftDirectory)
+            if (leftInfo is IDirectoryEntry leftDirectory)
             {
                 if (baselineEntry?.IsDirectory == true)
                 {
@@ -106,14 +108,20 @@ public sealed class BaselineComparisonEngine
                 }
                 else if (baselineEntry is null)
                 {
-                    children.Add(BuildLeftOnlyDirectory(leftDirectory, childRelativePath, name, matcher, options, cancellationToken));
+                    children.Add(BuildLeftOnlyDirectory(
+                        leftDirectory,
+                        childRelativePath,
+                        name,
+                        matcher,
+                        options,
+                        cancellationToken));
                 }
                 else
                 {
                     children.Add(BuildTypeMismatchNode(name, childRelativePath, leftDirectory, baselineEntry));
                 }
             }
-            else if (leftInfo is FileInfo leftFile)
+            else if (leftInfo is IFileEntry leftFile)
             {
                 if (baselineEntry?.IsFile == true)
                 {
@@ -156,7 +164,7 @@ public sealed class BaselineComparisonEngine
     }
 
     private ComparisonNode CompareFile(
-        FileInfo left,
+        IFileEntry left,
         BaselineEntry baseline,
         string relativePath,
         string displayName,
@@ -171,7 +179,7 @@ public sealed class BaselineComparisonEngine
 
         if (!algorithms.IsDefaultOrEmpty)
         {
-            leftHashes = _hashCalculator.ComputeHashes(left.FullName, algorithms, cancellationToken);
+            leftHashes = _hashCalculator.ComputeHashes(left, algorithms, cancellationToken);
             baselineHashes = algorithms.ToDictionary(
                 algorithm => algorithm,
                 algorithm => baseline.Hashes.TryGetValue(algorithm, out var value)
@@ -239,7 +247,7 @@ public sealed class BaselineComparisonEngine
     }
 
     private ComparisonNode BuildLeftOnlyDirectory(
-        DirectoryInfo directory,
+        IDirectoryEntry directory,
         string relativePath,
         string displayName,
         Matcher? matcher,
@@ -249,7 +257,7 @@ public sealed class BaselineComparisonEngine
         cancellationToken.ThrowIfCancellationRequested();
 
         var children = new List<ComparisonNode>();
-        foreach (var entry in directory.EnumerateFileSystemInfos())
+        foreach (var entry in directory.EnumerateEntries())
         {
             if (ShouldIgnore(entry, relativePath, matcher))
             {
@@ -260,12 +268,12 @@ public sealed class BaselineComparisonEngine
                 ? entry.Name
                 : Path.Combine(relativePath, entry.Name);
 
-            if (entry is DirectoryInfo childDirectory)
+            if (entry is IDirectoryEntry childDirectory)
             {
                 var child = BuildLeftOnlyDirectory(childDirectory, childRelative, entry.Name, matcher, options, cancellationToken);
                 children.Add(child);
             }
-            else if (entry is FileInfo file)
+            else if (entry is IFileEntry file)
             {
                 children.Add(BuildLeftOnlyFile(file, childRelative, entry.Name));
             }
@@ -302,7 +310,7 @@ public sealed class BaselineComparisonEngine
             children);
     }
 
-    private static ComparisonNode BuildLeftOnlyFile(FileInfo file, string relativePath, string displayName)
+    private static ComparisonNode BuildLeftOnlyFile(IFileEntry file, string relativePath, string displayName)
     {
         var detail = new FileComparisonDetail(
             file.Length,
@@ -342,25 +350,19 @@ public sealed class BaselineComparisonEngine
             ImmutableArray<ComparisonNode>.Empty);
     }
 
-    private static ComparisonNode BuildTypeMismatchNode(string displayName, string relativePath, FileSystemInfo left, BaselineEntry baseline)
+    private static ComparisonNode BuildTypeMismatchNode(string displayName, string relativePath, IFileSystemEntry left, BaselineEntry baseline)
     {
-        long? leftSize = left switch
-        {
-            FileInfo lf => lf.Length,
-            DirectoryInfo _ => null,
-            _ => null
-        };
-
+        long? leftSize = left is IFileEntry leftFile ? leftFile.Length : null;
         long? rightSize = baseline.Size;
 
-        DateTimeOffset? leftModified = left switch
+        DateTimeOffset? leftModified = left.EntryType switch
         {
-            FileInfo lf => lf.LastWriteTimeUtc,
-            DirectoryInfo ld => ld.LastWriteTimeUtc,
+            FileSystemEntryType.File => left.LastWriteTimeUtc,
+            FileSystemEntryType.Directory => left.LastWriteTimeUtc,
             _ => null
         };
 
-        var message = left is DirectoryInfo
+        var message = left.EntryType == FileSystemEntryType.Directory
             ? "Left side is a directory while baseline recorded a file."
             : "Left side is a file while baseline recorded a directory.";
 
@@ -454,19 +456,19 @@ public sealed class BaselineComparisonEngine
         return delta <= tolerance.Value;
     }
 
-    private static Dictionary<string, FileSystemInfo> EnumerateEntries(
-        DirectoryInfo directory,
+    private static Dictionary<string, IFileSystemEntry> EnumerateEntries(
+        IDirectoryEntry directory,
         string relativePath,
         Matcher? matcher,
         StringComparer comparer)
     {
-        var result = new Dictionary<string, FileSystemInfo>(comparer);
+        var result = new Dictionary<string, IFileSystemEntry>(comparer);
         if (!directory.Exists)
         {
             return result;
         }
 
-        foreach (var entry in directory.EnumerateFileSystemInfos())
+        foreach (var entry in directory.EnumerateEntries())
         {
             if (ShouldIgnore(entry, relativePath, matcher))
             {
@@ -496,7 +498,7 @@ public sealed class BaselineComparisonEngine
         return matcher;
     }
 
-    private static bool ShouldIgnore(FileSystemInfo entry, string parentRelativePath, Matcher? matcher)
+    private static bool ShouldIgnore(IFileSystemEntry entry, string parentRelativePath, Matcher? matcher)
     {
         if (matcher is null)
         {

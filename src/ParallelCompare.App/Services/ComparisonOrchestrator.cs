@@ -127,7 +127,8 @@ public sealed class ComparisonOrchestrator
             ExportFormat = resolved.ExportFormat,
             NoProgress = resolved.NoProgress,
             DiffTool = resolved.DiffTool,
-            CancellationToken = cancellationToken
+            CancellationToken = cancellationToken,
+            FileSystem = resolved.FileSystem
         };
 
         return await _engine.CompareAsync(options);
@@ -160,7 +161,8 @@ public sealed class ComparisonOrchestrator
             CaseSensitive = resolved.CaseSensitive,
             ModifiedTimeTolerance = resolved.ModifiedTimeTolerance,
             Mode = resolved.Mode,
-            CancellationToken = cancellationToken
+            CancellationToken = cancellationToken,
+            FileSystem = resolved.FileSystem
         };
 
         var result = await _baselineEngine.CompareAsync(options);

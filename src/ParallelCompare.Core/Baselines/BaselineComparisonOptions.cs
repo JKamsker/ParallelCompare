@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Immutable;
 using System.Threading;
+using ParallelCompare.Core.FileSystem;
 using ParallelCompare.Core.Options;
 
 namespace ParallelCompare.Core.Baselines;
@@ -16,4 +17,5 @@ public sealed record BaselineComparisonOptions
     public TimeSpan? ModifiedTimeTolerance { get; init; }
     public ComparisonMode Mode { get; init; }
     public CancellationToken CancellationToken { get; init; }
+    public IFileSystem FileSystem { get; init; } = PhysicalFileSystem.Instance;
 }

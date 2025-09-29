@@ -23,8 +23,8 @@ This checklist tracks the work required to deliver the consolidated implementati
 - [x] Surface watch status and baseline metadata in both CLI and TUI outputs.
 
 ## Phase 5 – Testing & Polishing
-- [ ] Author unit tests for configuration resolution, exporter selection, and diff-tool invocation.
-- [ ] Create integration tests for compare/watch/snapshot workflows.
+- [x] Author unit tests for configuration resolution, exporter selection, and diff-tool invocation.
+- [x] Create integration tests for compare/watch/snapshot workflows.
 - [ ] Conduct manual cross-platform validation (Windows, macOS, Linux) for TUI and CLI flows.
 
 ## Documentation & Release

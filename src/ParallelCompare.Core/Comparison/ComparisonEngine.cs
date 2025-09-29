@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.FileSystemGlobbing;
 using ParallelCompare.Core.Comparison.Hashing;
+using ParallelCompare.Core.FileSystem;
 using ParallelCompare.Core.Options;
 
 namespace ParallelCompare.Core.Comparison;
@@ -31,8 +32,9 @@ public sealed class ComparisonEngine
         cancellationToken.ThrowIfCancellationRequested();
 
         var matcher = BuildMatcher(options);
-        var leftDirectory = new DirectoryInfo(options.LeftPath);
-        var rightDirectory = new DirectoryInfo(options.RightPath);
+        var fileSystem = options.FileSystem ?? PhysicalFileSystem.Instance;
+        var leftDirectory = fileSystem.GetDirectory(options.LeftPath);
+        var rightDirectory = fileSystem.GetDirectory(options.RightPath);
 
         if (!leftDirectory.Exists)
         {
@@ -64,8 +66,8 @@ public sealed class ComparisonEngine
     private ComparisonNode CompareDirectory(
         string relativePath,
         string displayName,
-        DirectoryInfo left,
-        DirectoryInfo right,
+        IDirectoryEntry left,
+        IDirectoryEntry right,
         Matcher? matcher,
         ComparisonOptions options,
         CancellationToken cancellationToken)
@@ -131,6 +133,7 @@ public sealed class ComparisonEngine
         {
             updateSink?.NodeCompleted(directoryNode);
         }
+
         return directoryNode;
     }
 
@@ -142,8 +145,8 @@ public sealed class ComparisonEngine
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var leftDir = item.Left as DirectoryInfo;
-        var rightDir = item.Right as DirectoryInfo;
+        var leftDir = item.Left as IDirectoryEntry;
+        var rightDir = item.Right as IDirectoryEntry;
 
         if (leftDir is not null && rightDir is not null)
         {
@@ -157,7 +160,7 @@ public sealed class ComparisonEngine
                 cancellationToken);
         }
 
-        if (leftDir is not null && item.Right is FileInfo rightFile)
+        if (leftDir is not null && item.Right is IFileEntry rightFile)
         {
             return BuildTypeMismatchNode(
                 item.Name,
@@ -167,7 +170,7 @@ public sealed class ComparisonEngine
                 cancellationToken);
         }
 
-        if (rightDir is not null && item.Left is FileInfo leftFile)
+        if (rightDir is not null && item.Left is IFileEntry leftFile)
         {
             return BuildTypeMismatchNode(
                 item.Name,
@@ -204,8 +207,8 @@ public sealed class ComparisonEngine
         return CompareFile(
             item.RelativePath,
             item.Name,
-            item.Left as FileInfo,
-            item.Right as FileInfo,
+            item.Left as IFileEntry,
+            item.Right as IFileEntry,
             options,
             cancellationToken);
     }
@@ -226,8 +229,8 @@ public sealed class ComparisonEngine
     private ComparisonNode CompareFile(
         string relativePath,
         string displayName,
-        FileInfo? left,
-        FileInfo? right,
+        IFileEntry? left,
+        IFileEntry? right,
         ComparisonOptions options,
         CancellationToken cancellationToken)
     {
@@ -305,8 +308,8 @@ public sealed class ComparisonEngine
     }
 
     private ComparisonStatus CompareFileContents(
-        FileInfo left,
-        FileInfo right,
+        IFileEntry left,
+        IFileEntry right,
         ComparisonOptions options,
         CancellationToken cancellationToken,
         out FileComparisonDetail detail)
@@ -335,8 +338,7 @@ public sealed class ComparisonEngine
 
         if (options.HashAlgorithms.IsDefaultOrEmpty)
         {
-            // Quick mode fallback: read bytes when metadata mismatch.
-            if (!FilesBinaryEqual(left.FullName, right.FullName, cancellationToken))
+            if (!FilesBinaryEqual(left, right, cancellationToken))
             {
                 detail = new FileComparisonDetail(
                     left.Length,
@@ -360,8 +362,8 @@ public sealed class ComparisonEngine
             return ComparisonStatus.Equal;
         }
 
-        leftHashes = _hashCalculator.ComputeHashes(left.FullName, options.HashAlgorithms, cancellationToken);
-        rightHashes = _hashCalculator.ComputeHashes(right.FullName, options.HashAlgorithms, cancellationToken);
+        leftHashes = _hashCalculator.ComputeHashes(left, options.HashAlgorithms, cancellationToken);
+        rightHashes = _hashCalculator.ComputeHashes(right, options.HashAlgorithms, cancellationToken);
 
         var status = HashesEqual(leftHashes, rightHashes)
             ? ComparisonStatus.Equal
@@ -378,13 +380,13 @@ public sealed class ComparisonEngine
         return status;
     }
 
-    private static bool FilesBinaryEqual(string leftPath, string rightPath, CancellationToken cancellationToken)
+    private static bool FilesBinaryEqual(IFileEntry left, IFileEntry right, CancellationToken cancellationToken)
     {
         const int BufferSize = 8192;
-        using var left = File.OpenRead(leftPath);
-        using var right = File.OpenRead(rightPath);
+        using var leftStream = left.OpenRead();
+        using var rightStream = right.OpenRead();
 
-        if (left.Length != right.Length)
+        if (leftStream.Length != rightStream.Length)
         {
             return false;
         }
@@ -393,10 +395,10 @@ public sealed class ComparisonEngine
         var rightBuffer = new byte[BufferSize];
 
         int leftRead;
-        while ((leftRead = left.Read(leftBuffer, 0, BufferSize)) > 0)
+        while ((leftRead = leftStream.Read(leftBuffer, 0, BufferSize)) > 0)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var rightRead = right.Read(rightBuffer, 0, BufferSize);
+            var rightRead = rightStream.Read(rightBuffer, 0, BufferSize);
             if (leftRead != rightRead)
             {
                 return false;
@@ -474,7 +476,7 @@ public sealed class ComparisonEngine
         return delta <= tolerance.Value;
     }
 
-    private static bool ShouldIgnore(FileSystemInfo entry, string parentRelativePath, Matcher? matcher)
+    private static bool ShouldIgnore(IFileSystemEntry entry, string parentRelativePath, Matcher? matcher)
     {
         if (matcher is null)
         {
@@ -505,19 +507,19 @@ public sealed class ComparisonEngine
         return matcher;
     }
 
-    private static Dictionary<string, FileSystemInfo> EnumerateEntries(
-        DirectoryInfo directory,
+    private static Dictionary<string, IFileSystemEntry> EnumerateEntries(
+        IDirectoryEntry directory,
         string relativePath,
         Matcher? matcher,
         StringComparer comparer)
     {
-        var result = new Dictionary<string, FileSystemInfo>(comparer);
+        var result = new Dictionary<string, IFileSystemEntry>(comparer);
         if (!directory.Exists)
         {
             return result;
         }
 
-        foreach (var entry in directory.EnumerateFileSystemInfos())
+        foreach (var entry in directory.EnumerateEntries())
         {
             if (ShouldIgnore(entry, relativePath, matcher))
             {
@@ -533,7 +535,7 @@ public sealed class ComparisonEngine
     private ComparisonNode BuildSingleSideDirectory(
         string displayName,
         string relativePath,
-        DirectoryInfo directory,
+        IDirectoryEntry directory,
         ComparisonStatus status,
         Matcher? matcher,
         CancellationToken cancellationToken,
@@ -541,10 +543,8 @@ public sealed class ComparisonEngine
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        updateSink?.DirectoryDiscovered(relativePath, displayName);
-
         var children = new List<ComparisonNode>();
-        foreach (var entry in directory.EnumerateFileSystemInfos())
+        foreach (var entry in directory.EnumerateEntries())
         {
             if (ShouldIgnore(entry, relativePath, matcher))
             {
@@ -555,7 +555,7 @@ public sealed class ComparisonEngine
                 ? entry.Name
                 : Path.Combine(relativePath, entry.Name);
 
-            if (entry is DirectoryInfo childDirectory)
+            if (entry is IDirectoryEntry childDirectory)
             {
                 var childNode = BuildSingleSideDirectory(
                     entry.Name,
@@ -568,7 +568,7 @@ public sealed class ComparisonEngine
                 children.Add(childNode);
                 updateSink?.NodeCompleted(childNode);
             }
-            else if (entry is FileInfo file)
+            else if (entry is IFileEntry file)
             {
                 var detail = status == ComparisonStatus.LeftOnly
                     ? new FileComparisonDetail(file.Length, null, file.LastWriteTimeUtc, null, null, null, null)
@@ -600,30 +600,19 @@ public sealed class ComparisonEngine
     private ComparisonNode BuildTypeMismatchNode(
         string displayName,
         string relativePath,
-        FileSystemInfo left,
-        FileSystemInfo right,
+        IFileSystemEntry left,
+        IFileSystemEntry right,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        long? leftSize = left is FileInfo leftFile ? leftFile.Length : null;
-        long? rightSize = right is FileInfo rightFile ? rightFile.Length : null;
+        long? leftSize = left is IFileEntry leftFile ? leftFile.Length : null;
+        long? rightSize = right is IFileEntry rightFile ? rightFile.Length : null;
 
-        var leftModified = left switch
-        {
-            FileInfo lf => lf.LastWriteTimeUtc,
-            DirectoryInfo ld => ld.LastWriteTimeUtc,
-            _ => (DateTimeOffset?)null
-        };
+        var leftModified = left.LastWriteTimeUtc;
+        var rightModified = right.LastWriteTimeUtc;
 
-        var rightModified = right switch
-        {
-            FileInfo rf => rf.LastWriteTimeUtc,
-            DirectoryInfo rd => rd.LastWriteTimeUtc,
-            _ => (DateTimeOffset?)null
-        };
-
-        var message = left is DirectoryInfo
+        var message = left.EntryType == FileSystemEntryType.Directory
             ? "Left side is a directory while right side is a file."
             : "Left side is a file while right side is a directory.";
 
@@ -670,7 +659,7 @@ public sealed class ComparisonEngine
 
     private sealed class EntryWorkItem
     {
-        public EntryWorkItem(string name, string relativePath, FileSystemInfo? left, FileSystemInfo? right)
+        public EntryWorkItem(string name, string relativePath, IFileSystemEntry? left, IFileSystemEntry? right)
         {
             Name = name;
             RelativePath = relativePath;
@@ -682,9 +671,9 @@ public sealed class ComparisonEngine
 
         public string RelativePath { get; }
 
-        public FileSystemInfo? Left { get; }
+        public IFileSystemEntry? Left { get; }
 
-        public FileSystemInfo? Right { get; }
+        public IFileSystemEntry? Right { get; }
 
         public ComparisonNode? Node { get; set; }
     }

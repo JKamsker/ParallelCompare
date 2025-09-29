@@ -6,6 +6,7 @@ using System.Linq;
 using Microsoft.Extensions.FileSystemGlobbing;
 using ParallelCompare.Core.Comparison;
 using ParallelCompare.Core.Comparison.Hashing;
+using ParallelCompare.Core.FileSystem;
 using ParallelCompare.Core.Options;
 
 namespace ParallelCompare.Core.Baselines;
@@ -21,7 +22,8 @@ public sealed class BaselineSnapshotGenerator
 
     public BaselineManifest CreateSnapshot(ResolvedCompareSettings settings, CancellationToken cancellationToken)
     {
-        var directory = new DirectoryInfo(settings.LeftPath);
+        var fileSystem = settings.FileSystem ?? PhysicalFileSystem.Instance;
+        var directory = fileSystem.GetDirectory(settings.LeftPath);
         if (!directory.Exists)
         {
             throw new DirectoryNotFoundException($"Left directory '{settings.LeftPath}' was not found.");
@@ -42,7 +44,7 @@ public sealed class BaselineSnapshotGenerator
     }
 
     private BaselineEntry BuildDirectory(
-        DirectoryInfo directory,
+        IDirectoryEntry directory,
         string relativePath,
         Matcher? matcher,
         ResolvedCompareSettings settings,
@@ -53,7 +55,7 @@ public sealed class BaselineSnapshotGenerator
         var comparer = settings.CaseSensitive ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
         var children = new List<BaselineEntry>();
 
-        foreach (var entry in directory.EnumerateFileSystemInfos())
+        foreach (var entry in directory.EnumerateEntries())
         {
             if (ShouldIgnore(entry, relativePath, matcher))
             {
@@ -64,12 +66,12 @@ public sealed class BaselineSnapshotGenerator
                 ? entry.Name
                 : Path.Combine(relativePath, entry.Name);
 
-            if (entry is DirectoryInfo childDirectory)
+            if (entry is IDirectoryEntry childDirectory)
             {
                 var child = BuildDirectory(childDirectory, childRelative, matcher, settings, cancellationToken);
                 children.Add(child);
             }
-            else if (entry is FileInfo file)
+            else if (entry is IFileEntry file)
             {
                 var child = BuildFileEntry(file, childRelative, settings, cancellationToken);
                 children.Add(child);
@@ -91,7 +93,7 @@ public sealed class BaselineSnapshotGenerator
     }
 
     private BaselineEntry BuildFileEntry(
-        FileInfo file,
+        IFileEntry file,
         string relativePath,
         ResolvedCompareSettings settings,
         CancellationToken cancellationToken)
@@ -101,7 +103,7 @@ public sealed class BaselineSnapshotGenerator
         var hashes = settings.Algorithms.IsDefaultOrEmpty
             ? ImmutableDictionary<HashAlgorithmType, string>.Empty
             : _hashCalculator
-                .ComputeHashes(file.FullName, settings.Algorithms, cancellationToken)
+                .ComputeHashes(file, settings.Algorithms, cancellationToken)
                 .ToImmutableDictionary(pair => pair.Key, pair => pair.Value, HashAlgorithmComparer.Instance);
 
         return new BaselineEntry(
@@ -131,7 +133,7 @@ public sealed class BaselineSnapshotGenerator
         return matcher;
     }
 
-    private static bool ShouldIgnore(FileSystemInfo entry, string parentRelativePath, Matcher? matcher)
+    private static bool ShouldIgnore(IFileSystemEntry entry, string parentRelativePath, Matcher? matcher)
     {
         if (matcher is null)
         {
