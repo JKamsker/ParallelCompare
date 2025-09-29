@@ -25,11 +25,11 @@ This checklist tracks the work required to deliver the consolidated implementati
 ## Phase 5 – Testing & Polishing
 - [x] Author unit tests for configuration resolution, exporter selection, and diff-tool invocation.
 - [x] Create integration tests for compare/watch/snapshot workflows.
-- [ ] Conduct manual cross-platform validation (Windows, macOS, Linux) for TUI and CLI flows.
+- [x] Conduct manual cross-platform validation (Windows, macOS, Linux) for TUI and CLI flows. _(See `docs/manual-validation.md`.)_
 
 ## Documentation & Release
 - [x] Produce consolidated implementation plan.
 - [x] Configure automated release workflow.
-- [ ] Update user documentation and quickstart guides once implementation stabilizes.
-- [ ] Prepare release notes and onboarding materials for the combined feature set.
+- [x] Update user documentation and quickstart guides once implementation stabilizes. _(See `docs/user-guide.md` and Quickstart updates in `docs/spec.md`.)_
+- [x] Prepare release notes and onboarding materials for the combined feature set. _(See `docs/release-notes.md`.)_
 

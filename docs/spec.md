@@ -862,26 +862,39 @@ updates:
 * Compare two folders with 8 threads:
 
   ```
-  fsequal compare A B -t 8
+  parallelcompare compare A B --threads 8
   ```
 * Ignore build outputs and only warn:
 
   ```
-  fsequal compare A B -i "**/bin/**" -i "**/obj/**" -v warn
+  parallelcompare compare A B \
+    --ignore "**/bin/**" \
+    --ignore "**/obj/**" \
+    --verbosity warn
   ```
-* Quick mode with mtime tolerance:
+* Watch for changes with live refresh:
 
   ```
-  fsequal compare A B -m quick --mtime-tolerance 2
+  parallelcompare compare A B --watch --watch-delay 2
   ```
-* Interactive mode:
+* Baseline comparison against a stored snapshot:
 
   ```
-  fsequal compare A B --interactive
+  parallelcompare snapshot A --output baselines/a.json
+  parallelcompare compare A --baseline baselines/a.json
   ```
-* Export machine-readable report:
+* Interactive review experience:
 
   ```
-  fsequal compare A B --json out/report.json --summary out/summary.json --no-progress
+  parallelcompare compare A B --interactive --theme high-contrast
+  ```
+* Export machine-readable and human-friendly reports:
+
+  ```
+  parallelcompare compare A B \
+    --json reports/diff.json \
+    --junit reports/tests.xml \
+    --markdown reports/summary.md \
+    --no-progress
   ```
 
