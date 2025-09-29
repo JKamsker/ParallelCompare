@@ -261,45 +261,603 @@ fsequal compare ./release-A ./release-B -i "**/docs/**" -v info --fail-on any
 
 ---
 
-## 13) Roadmap
+## 13) Roadmap (phased releases)
 
-* **V1**: CLI + interactive mode (--interactive), CRC32/MD5/SHA-256, ignores, profiles, JSON export, multi-thread.
-* **V1.1**: XXH64 plugin, include globs, `.gitignore` opt-in, blockwise byte-compare pre-hash.
-* **V1.2**: Remote compare (hash stream over gRPC/SSH), permissions/ACL compare opt-in.
-* **V2**: Snapshot manifests, change reports, watch mode.
+### V1.0 - Core (MVP)
+* CLI + interactive mode (--interactive)
+* Hash algos: CRC32, MD5, SHA-256
+* Multi-threaded pipeline (channels)
+* Ignore patterns (glob)
+* JSON/summary export
+* Profiles & config files
+* Rich console output (Spectre.Console)
+* .NET global tool distribution
+* Basic tests (unit + integration)
+* CI/CD (GitHub Actions)
+* User docs (README, examples)
+
+### V1.1 - Polish
+* XXH64 hasher plugin
+* Include globs (whitelist)
+* `.gitignore` opt-in respect
+* Native binaries (win/linux/macos)
+* Acceptance tests (CliWrap)
+* Performance benchmarks (BenchmarkDotNet)
+* Code coverage >80%
+* Improved error messages
+* Shell completions (bash/zsh/fish)
+
+### V1.2 - Advanced
+* Self-update command
+* Permissions/ACL compare (opt-in)
+* Diff tool integration (launch meld/Beyond Compare)
+* HTML export with interactive table
+* Telemetry (opt-in, privacy-respecting)
+* Plugin system (custom hashers/exporters)
+* Docker image
+* Package manager distribution (Homebrew, Chocolatey)
+
+### V2.0 - Next Gen
+* Snapshot/manifest mode (baseline compare)
+* Watch mode (continuous monitoring)
+* Remote compare (SSH, gRPC)
+* VS Code extension
+* GitHub Action reusable workflow
+* 3-way compare (A vs B vs C)
+* Change reports over time
+* Advanced filters (regex, size ranges, date ranges)
+* Parallel multi-folder compare (A vs B, C vs D simultaneously)
 
 ---
 
-## 14) Minimal Skeleton (just enough to situate things)
+## 14) Complete Project Structure (with all the bells & whistles)
 
 ```
 fsEqual/
+  .github/
+    workflows/
+      ci.yml                     # Build, test, lint on every push
+      release.yml                # Tag-triggered: pack tool, build natives, create GitHub release
+      codeql.yml                 # Security scanning
+      dependabot.yml             # Dependency updates
   src/
-    FsEqual.Cli/                 # Spectre.Console.Cli commands
+    FsEqual.Cli/                 # Spectre.Console.Cli commands + entry point
       Commands/
         CompareCommand.cs        # CLI pipeline runner + outputs (handles --interactive)
-        AlgosCommand.cs
+        AlgosCommand.cs          # List available hash algorithms
+        VersionCommand.cs        # Show version, runtime info, build metadata
+        BenchmarkCommand.cs      # Built-in perf benchmarks (optional)
       Options/
         CompareSettings.cs
+        GlobalSettings.cs
       Ui/
         CliRenderers.cs          # Non-interactive output
         InteractiveScreens.cs    # Interactive mode screens
-    FsEqual.Core/                # Pipeline + domain
-      Pipeline/ (channels)
-      Hashing/ (IContentHasher + built-ins)
-      Model/ (results, enums)
-      Config/ (profiles, loader)
-      Logging/ (wrappers)
+        Themes.cs                # Color schemes for output
+      Program.cs                 # Entry point, command registration
+      FsEqual.Cli.csproj         # PackAsTool=true for dotnet tool
+    FsEqual.Core/                # Pipeline + domain (no UI deps)
+      Pipeline/
+        EnumerationStage.cs
+        HashingStage.cs
+        AggregationStage.cs
+        PipelineCoordinator.cs
+      Hashing/
+        IContentHasher.cs
+        Crc32Hasher.cs
+        Md5Hasher.cs
+        Sha256Hasher.cs
+        HasherFactory.cs
+      Model/
+        ComparisonResult.cs
+        DifferenceType.cs
+        FileEntry.cs
+        ComparisonStats.cs
+      Config/
+        ProfileLoader.cs
+        IgnorePatterns.cs
+      Logging/
+        IComparisonLogger.cs
+        StructuredLogger.cs
+      Utilities/
+        PathNormalizer.cs
+        GlobMatcher.cs
+      FsEqual.Core.csproj
+    FsEqual.Hash.Xxh64/          # Optional plugin package
+      Xxh64Hasher.cs
+      FsEqual.Hash.Xxh64.csproj
   tests/
-    FsEqual.Tests/
-      CliUsageTests.cs
-      PipelineTests.cs
-      HashTests.cs
+    FsEqual.Tests/               # Unit & integration tests
+      Pipeline/
+        EnumerationTests.cs
+        HashingTests.cs
+        PipelineIntegrationTests.cs
+      Hashing/
+        Crc32Tests.cs
+        Md5Tests.cs
+        Sha256Tests.cs
+      Model/
+        ResultTests.cs
+      Config/
+        ProfileLoaderTests.cs
+        IgnorePatternTests.cs
+      Commands/
+        CompareCommandTests.cs
+        AlgosCommandTests.cs
+      Fixtures/
+        TestFileSystemBuilder.cs # Helper to create test folder structures
+      FsEqual.Tests.csproj
+    FsEqual.BenchmarkTests/      # Performance benchmarks (BenchmarkDotNet)
+      HashingBenchmarks.cs
+      PipelineBenchmarks.cs
+      LargeFileBenchmarks.cs
+      FsEqual.BenchmarkTests.csproj
+    FsEqual.AcceptanceTests/     # End-to-end CLI tests (CliWrap)
+      CliOutputTests.cs
+      ExitCodeTests.cs
+      JsonExportTests.cs
+      InteractiveModeTests.cs    # Automated TUI testing (if feasible)
+      FsEqual.AcceptanceTests.csproj
+  docs/
+    spec.md                      # This file!
+    README.md                    # User-facing guide
+    CONTRIBUTING.md              # Dev setup, PR guidelines
+    ARCHITECTURE.md              # System design, pipeline explanation
+    CHANGELOG.md                 # Version history
+    examples/
+      basic-usage.md
+      ci-integration.md
+      profiles.md
+      ignore-patterns.md
+  samples/
+    sample-ignore-file           # Example .fsequalignore
+    sample-config.yml            # Example config with profiles
+  benchmarks/                    # Test data for benchmarks
+    1k-files/
+    10k-files/
+    large-binaries/
+  scripts/
+    build-natives.ps1            # Cross-compile single-file binaries (win/linux/osx)
+    run-tests.ps1                # Test runner (unit + acceptance)
+    pack-tool.ps1                # Create NuGet tool package
+    publish-release.ps1          # Full release workflow
+  .editorconfig                  # Code style
+  .gitignore
+  Directory.Build.props          # Common MSBuild properties (versioning, etc.)
+  Directory.Packages.props       # Central package management (CPM)
+  FsEqual.sln
+  LICENSE                        # MIT or Apache 2.0
+  README.md                      # Repo overview, quick start
+  nuget.config                   # NuGet sources
+  global.json                    # Pin .NET SDK version
 ```
 
 ---
 
-## 15) Quickstart Cheatsheet
+## 15) Testing Strategy (comprehensive)
+
+### Unit Tests (xUnit + FluentAssertions)
+
+* **Core logic**: Pipeline stages, hashers, result aggregation.
+* **Config**: Profile loading, ignore patterns, glob matching.
+* **Models**: Serialization, equality, validation.
+* **Mocking**: Use `TestFileSystemBuilder` fixture to create in-memory or temp folder structures.
+* **Coverage target**: 80%+ for Core, 60%+ for CLI commands.
+
+### Integration Tests
+
+* **Pipeline end-to-end**: Feed real folders, verify results.
+* **Multi-threading**: Validate thread safety, no data races.
+* **Cancellation**: Ensure graceful shutdown on timeout/Ctrl+C.
+* **Large files**: Test with 1GB+ files, verify streaming/chunking.
+
+### Acceptance Tests (CliWrap)
+
+* **CLI invocation**: Test all flags, exit codes, output formats.
+* **JSON output**: Parse and validate schema.
+* **Error scenarios**: Missing folders, permission denied, invalid args.
+* **Interactive mode**: (Challenging) Use terminal automation or skip in CI.
+
+### Benchmark Tests (BenchmarkDotNet)
+
+* **Hashing speed**: Compare CRC32 vs MD5 vs SHA-256 vs XXH64.
+* **Pipeline throughput**: Measure files/sec with varying thread counts.
+* **Scalability**: 1k files, 10k files, 100k files.
+* **Publish results**: Store in `docs/benchmarks/` for historical tracking.
+
+### Property-Based Tests (FsCheck - optional)
+
+* **Glob matching**: Random patterns vs paths.
+* **Hash consistency**: Same file → same hash (idempotency).
+
+### Test Data
+
+* **Fixtures**: Pre-built folder structures (identical, diff sizes, diff content, missing files).
+* **Generators**: Programmatically create N files with controlled differences.
+* **Binary files**: Images, videos (test large files).
+* **Edge cases**: Empty files, empty folders, symlinks, Unicode names, long paths.
+
+---
+
+## 16) Packaging & Distribution
+
+### A) .NET Global Tool (primary)
+
+* **Project**: `FsEqual.Cli.csproj`
+* **Properties**:
+  ```xml
+  <PackAsTool>true</PackAsTool>
+  <ToolCommandName>fsequal</ToolCommandName>
+  <PackageId>FsEqual.Tool</PackageId>
+  <Version>1.0.0</Version>
+  <Authors>Your Name</Authors>
+  <Description>Fast, multi-threaded folder comparison with interactive TUI</Description>
+  <PackageTags>comparison;hash;folders;cli;tui;diff</PackageTags>
+  <PackageProjectUrl>https://github.com/yourorg/fsequal</PackageProjectUrl>
+  <RepositoryUrl>https://github.com/yourorg/fsequal</RepositoryUrl>
+  <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  <PackageReadmeFile>README.md</PackageReadmeFile>
+  <PackageIcon>icon.png</PackageIcon>
+  ```
+* **Build**: `dotnet pack -c Release`
+* **Publish**: `dotnet nuget push bin/Release/FsEqual.Tool.1.0.0.nupkg --source https://api.nuget.org/v3/index.json`
+* **Install**: `dotnet tool install -g FsEqual.Tool`
+* **Update**: `dotnet tool update -g FsEqual.Tool`
+
+### B) Native Binaries (single-file, self-contained)
+
+* **Platforms**: win-x64, linux-x64, osx-x64, osx-arm64
+* **Publish command** (per RID):
+  ```powershell
+  dotnet publish src/FsEqual.Cli -c Release -r win-x64 `
+    -p:PublishSingleFile=true `
+    -p:PublishTrimmed=true `
+    -p:IncludeNativeLibrariesForSelfExtract=true `
+    -p:EnableCompressionInSingleFile=true `
+    --self-contained
+  ```
+* **Script**: `scripts/build-natives.ps1` automates for all RIDs.
+* **Output**: `fsequal-1.0.0-win-x64.zip`, `fsequal-1.0.0-linux-x64.tar.gz`, etc.
+* **Distribution**: Attach to GitHub Releases.
+
+### C) Package Managers (future)
+
+* **Homebrew**: Formula for macOS (`brew install fsequal`).
+* **Chocolatey**: Package for Windows (`choco install fsequal`).
+* **apt/yum**: Debian/RPM packages for Linux.
+* **Scoop**: Windows package manager alternative.
+
+### D) Container Image (optional)
+
+* **Dockerfile**:
+  ```dockerfile
+  FROM mcr.microsoft.com/dotnet/runtime:8.0
+  COPY --from=build /app/out /app
+  ENTRYPOINT ["dotnet", "/app/FsEqual.Cli.dll"]
+  ```
+* **Usage**: `docker run --rm -v /hostA:/A -v /hostB:/B fsequal:latest compare /A /B`
+
+---
+
+## 17) CI/CD Pipeline (GitHub Actions)
+
+### A) Continuous Integration (`ci.yml`)
+
+Trigger: push, pull_request
+
+```yaml
+name: CI
+on: [push, pull_request]
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - run: dotnet restore
+      - run: dotnet build -c Release --no-restore
+      - run: dotnet test -c Release --no-build --verbosity normal --collect:"XPlat Code Coverage"
+      - uses: codecov/codecov-action@v4
+        with:
+          files: '**/coverage.cobertura.xml'
+  
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: dotnet format --verify-no-changes
+  
+  acceptance:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+      - run: dotnet test tests/FsEqual.AcceptanceTests -c Release
+```
+
+### B) Release Pipeline (`release.yml`)
+
+Trigger: tag push (`v*`)
+
+```yaml
+name: Release
+on:
+  push:
+    tags: ['v*']
+jobs:
+  pack-tool:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: dotnet pack src/FsEqual.Cli -c Release -p:Version=${{ github.ref_name }}
+      - run: dotnet nuget push **/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }}
+  
+  build-natives:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rid: [win-x64, linux-x64, osx-x64, osx-arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          dotnet publish src/FsEqual.Cli -c Release -r ${{ matrix.rid }} \
+            -p:PublishSingleFile=true -p:PublishTrimmed=true --self-contained
+          cd src/FsEqual.Cli/bin/Release/net8.0/${{ matrix.rid }}/publish
+          tar -czf fsequal-${{ github.ref_name }}-${{ matrix.rid }}.tar.gz *
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fsequal-${{ matrix.rid }}
+          path: '**/*.tar.gz'
+  
+  create-release:
+    needs: [pack-tool, build-natives]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+      - uses: softprops/action-gh-release@v1
+        with:
+          files: '**/*.tar.gz'
+          body: |
+            ## Install
+            **NuGet tool**: `dotnet tool install -g FsEqual.Tool --version ${{ github.ref_name }}`
+            **Binaries**: Download for your platform below.
+            
+            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/docs/CHANGELOG.md) for details.
+```
+
+### C) Security Scanning (`codeql.yml`)
+
+```yaml
+name: CodeQL
+on: [push, pull_request]
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: csharp
+      - run: dotnet build -c Release
+      - uses: github/codeql-action/analyze@v3
+```
+
+### D) Dependabot (`dependabot.yml`)
+
+```yaml
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: "/"
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: "/.github/workflows"
+    schedule:
+      interval: weekly
+```
+
+---
+
+## 18) Documentation (comprehensive)
+
+### A) User Docs
+
+* **README.md** (repo root):
+  * Badges (build status, NuGet version, license, coverage)
+  * Quick install & example
+  * Link to full docs
+* **docs/README.md** (user guide):
+  * Installation (all methods)
+  * Basic usage
+  * All flags explained (with examples)
+  * Interactive mode tutorial (with screenshots/GIFs)
+  * Config & profiles
+  * Ignore patterns
+  * CI/CD recipes
+  * Troubleshooting FAQ
+* **docs/examples/**:
+  * `basic-usage.md`: Walkthrough of common scenarios
+  * `ci-integration.md`: GitHub Actions, Azure Pipelines, GitLab CI examples
+  * `profiles.md`: Sample profiles for different use cases
+  * `ignore-patterns.md`: Glob pattern examples
+* **CHANGELOG.md**: Semantic versioning, what's new per release.
+
+### B) Developer Docs
+
+* **CONTRIBUTING.md**:
+  * Dev environment setup (SDK, IDE)
+  * Build & test instructions
+  * Code style (enforced by .editorconfig + dotnet format)
+  * PR checklist (tests, docs, changelog)
+  * Commit message conventions (Conventional Commits)
+* **ARCHITECTURE.md**:
+  * System overview diagram (pipeline stages)
+  * Channel-based concurrency model
+  * Extensibility points (custom hashers, output formatters)
+  * Performance considerations
+* **API docs** (XML comments + DocFX or similar):
+  * Generate HTML docs from `///` comments
+  * Publish to GitHub Pages
+
+### C) In-App Help
+
+* **Rich help** (Spectre.Console.Cli):
+  * `fsequal --help`: Command tree, descriptions
+  * `fsequal compare --help`: Detailed flag explanations, examples
+  * Colored, formatted, easy to scan
+* **Interactive help** (`?` key in interactive mode):
+  * Keybind reference overlay
+  * Context-sensitive tips
+
+---
+
+## 19) Versioning & Release Process
+
+### Semantic Versioning (SemVer)
+
+* **MAJOR**: Breaking CLI changes (flag renames, exit code changes)
+* **MINOR**: New features (new algos, new flags, interactive enhancements)
+* **PATCH**: Bug fixes, performance improvements
+
+### Release Checklist
+
+1. Update `CHANGELOG.md` (under "Unreleased" → version section)
+2. Bump version in `Directory.Build.props`
+3. Commit: `chore: release v1.2.3`
+4. Tag: `git tag v1.2.3`
+5. Push: `git push origin main --tags`
+6. CI/CD auto-publishes to NuGet + GitHub Releases
+7. Verify installation: `dotnet tool install -g FsEqual.Tool --version 1.2.3`
+8. Announce: Twitter, Reddit, GitHub Discussions, blog post
+
+### Pre-release Channels
+
+* **Alpha**: `1.2.3-alpha.1` (NuGet pre-release flag)
+* **Beta**: `1.2.3-beta.1`
+* **RC**: `1.2.3-rc.1`
+* Install: `dotnet tool install -g FsEqual.Tool --version 1.2.3-beta.1`
+
+---
+
+## 20) Advanced Features (bells & whistles)
+
+### A) Self-Update
+
+* Command: `fsequal update` (checks NuGet, installs latest)
+* Notify on outdated: Check version on startup (opt-out via config)
+
+### B) Telemetry (opt-in, privacy-respecting)
+
+* Anonymous usage stats: OS, algo used, file counts (no paths)
+* Helps prioritize features
+* `--telemetry-off` or config flag to disable
+
+### C) Plugin System
+
+* **Custom hashers**: Drop DLL in `~/.fsequal/plugins/`
+* **Custom exporters**: JSON → SQLite, Elasticsearch, etc.
+* Auto-discover via reflection
+
+### D) Watch Mode
+
+* Command: `fsequal watch <left> <right>`
+* Re-compare on file system changes (FileSystemWatcher)
+* Live refresh in interactive mode
+
+### E) Diff Viewer Integration
+
+* **3-way diff**: `fsequal compare A B --diff-tool meld`
+* Launch external tool (meld, Beyond Compare, VS Code) for selected file pair
+* Interactive mode: press `D` on file to diff
+
+### F) Snapshot & Manifest Mode
+
+* **Save baseline**: `fsequal snapshot ./A --output baseline.json`
+* **Compare to baseline**: `fsequal compare ./A --baseline baseline.json`
+* Use case: Detect drift over time, verify deployments
+
+### G) Remote Compare (future)
+
+* **SSH**: `fsequal compare ./local ssh://user@host:/remote`
+* Stream hashes over network, compare locally
+* Avoid copying entire folders
+
+### H) Parallel Exports
+
+* Export diffs to multiple formats simultaneously:
+  `fsequal compare A B --json out.json --csv out.csv --html out.html`
+
+### I) Custom Themes
+
+* Config: `theme: dark|light|custom`
+* Custom: Override Spectre color palette in config
+
+### J) Shell Completions
+
+* Generate for bash/zsh/fish/PowerShell:
+  `fsequal completion bash > /etc/bash_completion.d/fsequal`
+
+---
+
+## 21) Community & Ecosystem
+
+### A) GitHub Features
+
+* **Issues**: Bug reports, feature requests (templates for each)
+* **Discussions**: Q&A, show & tell, ideas
+* **Projects**: Roadmap board (Kanban)
+* **Wiki**: Community recipes, integrations
+
+### B) Integrations
+
+* **VS Code Extension**: Compare workspace folders, visualize diffs in sidebar
+* **Azure DevOps Task**: Pipeline task for artifact comparison
+* **GitHub Action**: Reusable action (`uses: yourorg/fsequal-action@v1`)
+
+### C) Blog & Content
+
+* Launch post: architecture, design decisions
+* Performance deep-dive: benchmark results, optimization techniques
+* Use case spotlights: CI, forensics, compliance
+
+### D) Swag
+
+* Logo, stickers, T-shirts (if it takes off!)
+
+---
+
+## 22) Quality Metrics & Monitoring
+
+### A) Code Quality
+
+* **Static analysis**: Roslyn analyzers, SonarCloud
+* **Linting**: dotnet format, StyleCop
+* **Complexity**: Track cyclomatic complexity, aim for simplicity
+
+### B) Performance Tracking
+
+* **Benchmark history**: Store BenchmarkDotNet results per release in repo
+* **Regression detection**: Alert if perf degrades >10% between versions
+
+### C) Test Metrics
+
+* **Coverage**: Track over time (Codecov, Coveralls)
+* **Test duration**: Optimize slow tests, parallelize suites
+
+### D) User Feedback
+
+* **In-app feedback**: `fsequal feedback` → opens GitHub issue with env info pre-filled
+* **Survey**: Periodic user survey (Google Forms, TypeForm)
+
+---
+
+## 23) Quickstart Cheatsheet
 
 * Compare two folders with 8 threads:
 
