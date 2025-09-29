@@ -1,0 +1,25 @@
+# Build artifacts
+bin/
+obj/
+
+# User-specific files
+*.user
+*.userosscache
+*.suo
+*.cache
+*.pdb
+*.log
+
+# Visual Studio Code
+.vscode/
+
+# Dotnet CLI
+*.deps.json
+*.runtimeconfig.json
+
+# NuGet
+*.nupkg
+.nuget/
+
+# Others
+*.DS_Store
