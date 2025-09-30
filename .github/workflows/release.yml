@@ -40,13 +40,13 @@ jobs:
         run: dotnet test --configuration Release --no-build --logger:"console;verbosity=minimal"
 
       - name: Pack artifacts
-        run: dotnet pack --configuration Release --no-build /p:PackageVersion=${{ steps.gitversion.outputs.nuGetVersionV2 }}
+        run: dotnet pack --configuration Release --no-build --output artifacts/nuget /p:PackageVersion=${{ steps.gitversion.outputs.nuGetVersionV2 }}
 
       - name: Upload packages
         uses: actions/upload-artifact@v4
         with:
           name: nuget-packages
-          path: '**/*.nupkg'
+          path: artifacts/nuget/*.nupkg
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v1
@@ -54,6 +54,29 @@ jobs:
           tag_name: v${{ steps.gitversion.outputs.semVer }}
           name: v${{ steps.gitversion.outputs.semVer }}
           generate_release_notes: true
-          files: '**/*.nupkg'
+          files: artifacts/nuget/*.nupkg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-nuget:
+    name: Publish NuGet package
+    needs: build-and-release
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download NuGet package
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages
+          path: nuget-packages
+
+      - name: Get secrets
+        uses: bitwarden/sm-action@v2
+        with:
+          access_token: ${{ secrets.BW_ACCESS_TOKEN }}
+          base_url: https://vault.bitwarden.eu
+          secrets: |
+            265b2fb6-2cf0-4859-9bc8-b24c00ab4378 > NUGET_API_KEY
+
+      - name: Upload to NuGet.org
+        run: dotnet nuget push "nuget-packages/*.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json
