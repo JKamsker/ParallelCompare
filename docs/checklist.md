@@ -1,4 +1,4 @@
-# ParallelCompare Integration Checklist
+# FsEqual Integration Checklist
 
 This checklist tracks the work required to deliver the consolidated implementation described in `docs/consolidated-implementation.md`.
 

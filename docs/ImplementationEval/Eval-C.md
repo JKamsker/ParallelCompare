@@ -1,4 +1,4 @@
-# ParallelCompare Implementation Evaluation and Plan
+# FsEqual Implementation Evaluation and Plan
 
 ## Method
 - Fetched the four candidate branches (`codex/implement-plan-in-docs/spec.md*`) from the upstream
