@@ -24,6 +24,7 @@ fsequal compare <left> [right]
 | `--baseline <path>` | Compares the left tree against a previously captured baseline manifest. |
 | `--json <path>` / `--summary <path>` | Writes detailed or summary JSON reports. |
 | `--export <name>` | Runs an exporter bundle defined in configuration. |
+| `--config <path>` | Overrides automatic discovery of `fsequal.config.json` (see below). |
 | `--diff-tool <path>` | Launches an external diff tool when selecting files in the TUI. |
 | `--profile <name>` | Applies a named configuration profile. |
 | `--interactive` | Opens the Spectre.Console-powered inspector after the initial run. |
@@ -31,6 +32,8 @@ fsequal compare <left> [right]
 | `--timeout <seconds>` | Aborts the run after the specified timeout. |
 
 For the complete option set, run `fsequal compare --help`.
+
+When `--config` is omitted, `fsequal` walks up from the working directory searching for `fsequal.config.json` or `.fsequal/config.json`, then falls back to user directories such as `$XDG_CONFIG_HOME/fsequal/`, `%APPDATA%/fsequal/`, `%LOCALAPPDATA%/fsequal/`, or `~/.fsequal/`. If a configuration file is malformed, the CLI lists each validation error (e.g. invalid thread counts or missing profile objects) before exiting so you know exactly what to fix.
 
 ## Examples
 

@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 namespace FsEqual.Core.Configuration;
@@ -10,12 +11,14 @@ public sealed record FsEqualConfiguration
     /// <summary>
     /// Gets the defaults applied when no profile is specified.
     /// </summary>
+    [Required]
     [JsonPropertyName("defaults")]
     public CompareProfile Defaults { get; init; } = new();
 
     /// <summary>
     /// Gets the set of named profiles that can be resolved by command-line commands.
     /// </summary>
+    [Required]
     [JsonPropertyName("profiles")]
     public Dictionary<string, CompareProfile> Profiles { get; init; } = new(StringComparer.OrdinalIgnoreCase);
 }
@@ -71,12 +74,14 @@ public class CompareProfile
     /// Gets the tolerance, in seconds, for modified timestamps.
     /// </summary>
     [JsonPropertyName("mtimeToleranceSeconds")]
+    [Range(0, double.MaxValue, ErrorMessage = "mtimeToleranceSeconds must be greater than or equal to zero.")]
     public double? MTimeToleranceSeconds { get; init; }
 
     /// <summary>
     /// Gets the maximum number of worker threads to use.
     /// </summary>
     [JsonPropertyName("threads")]
+    [Range(1, int.MaxValue, ErrorMessage = "threads must be greater than or equal to 1.")]
     public int? Threads { get; init; }
 
     /// <summary>
