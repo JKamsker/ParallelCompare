@@ -5,8 +5,17 @@ using ParallelCompare.Core.Configuration;
 
 namespace ParallelCompare.Core.Options;
 
+/// <summary>
+/// Normalizes compare command inputs by merging configuration defaults and validating options.
+/// </summary>
 public sealed class CompareSettingsResolver
 {
+    /// <summary>
+    /// Resolves the final comparison settings for the provided input and configuration.
+    /// </summary>
+    /// <param name="input">Command-line values to resolve.</param>
+    /// <param name="configuration">Optional configuration file content.</param>
+    /// <returns>The resolved comparison settings.</returns>
     public ResolvedCompareSettings Resolve(
         CompareSettingsInput input,
         ParallelCompareConfiguration? configuration)

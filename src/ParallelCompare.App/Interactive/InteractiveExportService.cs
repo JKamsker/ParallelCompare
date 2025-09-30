@@ -11,6 +11,9 @@ using ParallelCompare.Core.Options;
 
 namespace ParallelCompare.App.Interactive;
 
+/// <summary>
+/// Produces filtered exports from the interactive comparison session.
+/// </summary>
 public sealed class InteractiveExportService
 {
     private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web)
@@ -18,6 +21,15 @@ public sealed class InteractiveExportService
         WriteIndented = true
     };
 
+    /// <summary>
+    /// Exports the specified nodes to the requested format.
+    /// </summary>
+    /// <param name="result">Comparison result providing context.</param>
+    /// <param name="nodes">Nodes selected for export.</param>
+    /// <param name="format">Export format (json, csv, markdown).</param>
+    /// <param name="destination">Destination file path.</param>
+    /// <param name="activeAlgorithm">Active hash algorithm for CSV/Markdown columns.</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
     public async Task ExportAsync(
         ComparisonResult result,
         IReadOnlyList<ComparisonNode> nodes,

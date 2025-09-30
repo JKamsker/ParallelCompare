@@ -859,29 +859,29 @@ updates:
 
 ## 23) Quickstart Cheatsheet
 
-* Compare two folders with 8 threads:
+* **Baseline verification**
 
   ```
-  fsequal compare A B -t 8
+  fsequal compare build/stable build/candidate --baseline baselines/release.json --profile ci
   ```
-* Ignore build outputs and only warn:
+* **Live watch during refactor**
 
   ```
-  fsequal compare A B -i "**/bin/**" -i "**/obj/**" -v warn
+  fsequal watch src refactor --interactive --threads 4 --ignore "**/obj/**"
   ```
-* Quick mode with mtime tolerance:
+* **Snapshot creation for release artifacts**
 
   ```
-  fsequal compare A B -m quick --mtime-tolerance 2
+  fsequal snapshot create baselines/1.0.0.json --source dist
   ```
-* Interactive mode:
+* **Headless CI report**
 
   ```
-  fsequal compare A B --interactive
+  fsequal compare . ../main --no-interactive --export json=artifacts/report.json --export markdown=artifacts/summary.md
   ```
-* Export machine-readable report:
+* **Investigate differences with diff tool**
 
   ```
-  fsequal compare A B --json out/report.json --summary out/summary.json --no-progress
+  fsequal compare A B --diff "code --diff {left} {right}" --interactive
   ```
 

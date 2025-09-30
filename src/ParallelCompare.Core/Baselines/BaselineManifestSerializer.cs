@@ -9,6 +9,9 @@ using ParallelCompare.Core.Options;
 
 namespace ParallelCompare.Core.Baselines;
 
+/// <summary>
+/// Handles reading and writing baseline manifest files.
+/// </summary>
 public sealed class BaselineManifestSerializer
 {
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web)
@@ -20,6 +23,12 @@ public sealed class BaselineManifestSerializer
         }
     };
 
+    /// <summary>
+    /// Writes the manifest to disk at the specified path.
+    /// </summary>
+    /// <param name="manifest">Manifest to persist.</param>
+    /// <param name="path">Destination path for the manifest.</param>
+    /// <param name="cancellationToken">Token used to cancel the write operation.</param>
     public async Task WriteAsync(BaselineManifest manifest, string path, CancellationToken cancellationToken)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path)) ?? Directory.GetCurrentDirectory());
@@ -28,6 +37,12 @@ public sealed class BaselineManifestSerializer
         await JsonSerializer.SerializeAsync(stream, payload, SerializerOptions, cancellationToken);
     }
 
+    /// <summary>
+    /// Reads a manifest from disk.
+    /// </summary>
+    /// <param name="path">Manifest file path.</param>
+    /// <param name="cancellationToken">Token used to cancel the read operation.</param>
+    /// <returns>The deserialized manifest.</returns>
     public async Task<BaselineManifest> ReadAsync(string path, CancellationToken cancellationToken)
     {
         await using var stream = File.OpenRead(path);
@@ -112,35 +127,107 @@ public sealed class BaselineManifestSerializer
             : throw new InvalidOperationException($"Unsupported hash algorithm '{value}' in baseline manifest.");
     }
 
+    /// <summary>
+    /// Provides ordinal equality for <see cref="HashAlgorithmType"/> values.
+    /// </summary>
     private sealed class HashAlgorithmComparer : IEqualityComparer<HashAlgorithmType>
     {
+        /// <summary>
+        /// Gets the singleton comparer instance.
+        /// </summary>
         public static readonly HashAlgorithmComparer Instance = new();
 
+        /// <inheritdoc />
         public bool Equals(HashAlgorithmType x, HashAlgorithmType y) => x == y;
 
+        /// <inheritdoc />
         public int GetHashCode(HashAlgorithmType obj) => (int)obj;
     }
 
+    /// <summary>
+    /// Serializable representation of a <see cref="BaselineManifest"/>.
+    /// </summary>
     private sealed record SerializableBaselineManifest
     {
+        /// <summary>
+        /// Gets or sets the manifest version.
+        /// </summary>
         public string Version { get; init; } = BaselineManifest.CurrentVersion;
+
+        /// <summary>
+        /// Gets or sets the source directory path captured in the manifest.
+        /// </summary>
         public string SourcePath { get; init; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the capture timestamp.
+        /// </summary>
         public DateTimeOffset CreatedAt { get; init; }
+
+        /// <summary>
+        /// Gets or sets the ignore patterns applied during capture.
+        /// </summary>
         public string[]? IgnorePatterns { get; init; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether comparisons were case sensitive.
+        /// </summary>
         public bool CaseSensitive { get; init; }
+
+        /// <summary>
+        /// Gets or sets the modified time tolerance.
+        /// </summary>
         public TimeSpan? ModifiedTimeTolerance { get; init; }
+
+        /// <summary>
+        /// Gets or sets the hash algorithms captured with the manifest.
+        /// </summary>
         public string[]? Algorithms { get; init; }
+
+        /// <summary>
+        /// Gets or sets the root entry describing the directory tree.
+        /// </summary>
         public SerializableBaselineEntry? Root { get; init; }
     }
 
+    /// <summary>
+    /// Serializable representation of a <see cref="BaselineEntry"/>.
+    /// </summary>
     private sealed record SerializableBaselineEntry
     {
+        /// <summary>
+        /// Gets or sets the entry name.
+        /// </summary>
         public string? Name { get; init; }
+
+        /// <summary>
+        /// Gets or sets the path relative to the manifest root.
+        /// </summary>
         public string? RelativePath { get; init; }
+
+        /// <summary>
+        /// Gets or sets the entry type.
+        /// </summary>
         public BaselineEntryType EntryType { get; init; }
+
+        /// <summary>
+        /// Gets or sets the file size, when applicable.
+        /// </summary>
         public long? Size { get; init; }
+
+        /// <summary>
+        /// Gets or sets the last modified timestamp.
+        /// </summary>
         public DateTimeOffset? Modified { get; init; }
+
+        /// <summary>
+        /// Gets or sets the stored hash values.
+        /// </summary>
         public Dictionary<string, string>? Hashes { get; init; }
+
+        /// <summary>
+        /// Gets or sets the child entries for directories.
+        /// </summary>
         public SerializableBaselineEntry[]? Children { get; init; }
     }
 }

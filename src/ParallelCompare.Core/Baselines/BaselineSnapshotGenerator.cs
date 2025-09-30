@@ -11,15 +11,28 @@ using ParallelCompare.Core.Options;
 
 namespace ParallelCompare.Core.Baselines;
 
+/// <summary>
+/// Creates baseline manifests from live directory trees.
+/// </summary>
 public sealed class BaselineSnapshotGenerator
 {
     private readonly FileHashCalculator _hashCalculator;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BaselineSnapshotGenerator"/> class.
+    /// </summary>
+    /// <param name="hashCalculator">Optional hash calculator to reuse for file hashing.</param>
     public BaselineSnapshotGenerator(FileHashCalculator? hashCalculator = null)
     {
         _hashCalculator = hashCalculator ?? new FileHashCalculator();
     }
 
+    /// <summary>
+    /// Creates a baseline manifest using the provided comparison settings.
+    /// </summary>
+    /// <param name="settings">Resolved settings describing how to capture the snapshot.</param>
+    /// <param name="cancellationToken">Token used to cancel the snapshot operation.</param>
+    /// <returns>The generated baseline manifest.</returns>
     public BaselineManifest CreateSnapshot(ResolvedCompareSettings settings, CancellationToken cancellationToken)
     {
         var fileSystem = settings.FileSystem ?? PhysicalFileSystem.Instance;
@@ -147,12 +160,20 @@ public sealed class BaselineSnapshotGenerator
         return matcher.Match(relativePath).HasMatches;
     }
 
+    /// <summary>
+    /// Provides ordinal equality for <see cref="HashAlgorithmType"/> comparisons when building snapshots.
+    /// </summary>
     private sealed class HashAlgorithmComparer : IEqualityComparer<HashAlgorithmType>
     {
+        /// <summary>
+        /// Gets the singleton comparer instance.
+        /// </summary>
         public static readonly HashAlgorithmComparer Instance = new();
 
+        /// <inheritdoc />
         public bool Equals(HashAlgorithmType x, HashAlgorithmType y) => x == y;
 
+        /// <inheritdoc />
         public int GetHashCode(HashAlgorithmType obj) => (int)obj;
     }
 }

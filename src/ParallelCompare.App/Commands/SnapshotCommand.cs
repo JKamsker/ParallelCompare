@@ -6,15 +6,23 @@ using Spectre.Console.Cli;
 
 namespace ParallelCompare.App.Commands;
 
+/// <summary>
+/// Implements the <c>snapshot</c> command that captures baseline manifests.
+/// </summary>
 public sealed class SnapshotCommand : AsyncCommand<SnapshotCommandSettings>
 {
     private readonly ComparisonOrchestrator _orchestrator;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SnapshotCommand"/> class.
+    /// </summary>
+    /// <param name="orchestrator">Service responsible for executing comparisons.</param>
     public SnapshotCommand(ComparisonOrchestrator orchestrator)
     {
         _orchestrator = orchestrator;
     }
 
+    /// <inheritdoc />
     public override async Task<int> ExecuteAsync(CommandContext context, SnapshotCommandSettings settings)
     {
         if (string.IsNullOrWhiteSpace(settings.Output))

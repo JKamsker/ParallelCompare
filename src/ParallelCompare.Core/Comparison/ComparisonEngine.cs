@@ -12,15 +12,27 @@ using ParallelCompare.Core.Options;
 
 namespace ParallelCompare.Core.Comparison;
 
+/// <summary>
+/// Performs comparisons between two directory trees and produces structured results.
+/// </summary>
 public sealed class ComparisonEngine
 {
     private readonly FileHashCalculator _hashCalculator;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ComparisonEngine"/> class.
+    /// </summary>
+    /// <param name="hashCalculator">Optional hash calculator used for hashing file contents.</param>
     public ComparisonEngine(FileHashCalculator? hashCalculator = null)
     {
         _hashCalculator = hashCalculator ?? new FileHashCalculator();
     }
 
+    /// <summary>
+    /// Executes the comparison asynchronously based on the supplied options.
+    /// </summary>
+    /// <param name="options">Options describing the comparison inputs and behavior.</param>
+    /// <returns>A task that produces the resulting comparison tree.</returns>
     public Task<ComparisonResult> CompareAsync(ComparisonOptions options)
     {
         return Task.Run(() => CompareInternal(options), options.CancellationToken);
@@ -659,6 +671,13 @@ public sealed class ComparisonEngine
 
     private sealed class EntryWorkItem
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EntryWorkItem"/> class.
+        /// </summary>
+        /// <param name="name">Entry name.</param>
+        /// <param name="relativePath">Relative path for the entry.</param>
+        /// <param name="left">Left-side entry, if any.</param>
+        /// <param name="right">Right-side entry, if any.</param>
         public EntryWorkItem(string name, string relativePath, IFileSystemEntry? left, IFileSystemEntry? right)
         {
             Name = name;
@@ -667,14 +686,29 @@ public sealed class ComparisonEngine
             Right = right;
         }
 
+        /// <summary>
+        /// Gets the entry name.
+        /// </summary>
         public string Name { get; }
 
+        /// <summary>
+        /// Gets the relative path associated with the entry.
+        /// </summary>
         public string RelativePath { get; }
 
+        /// <summary>
+        /// Gets the left-side file system entry.
+        /// </summary>
         public IFileSystemEntry? Left { get; }
 
+        /// <summary>
+        /// Gets the right-side file system entry.
+        /// </summary>
         public IFileSystemEntry? Right { get; }
 
+        /// <summary>
+        /// Gets or sets the comparison node produced for the entry.
+        /// </summary>
         public ComparisonNode? Node { get; set; }
     }
 }

@@ -14,6 +14,9 @@ using Spectre.Console.Rendering;
 
 namespace ParallelCompare.App.Interactive;
 
+/// <summary>
+/// Provides the interactive comparison experience including navigation, filtering, and exports.
+/// </summary>
 public sealed class InteractiveCompareSession
 {
     private readonly ComparisonOrchestrator _orchestrator;
@@ -44,12 +47,25 @@ public sealed class InteractiveCompareSession
         SingleWriter = false
     });
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="InteractiveCompareSession"/> class.
+    /// </summary>
+    /// <param name="orchestrator">Orchestrator used to rerun comparisons and exports.</param>
+    /// <param name="diffLauncher">Launcher used to open external diff tools.</param>
     public InteractiveCompareSession(ComparisonOrchestrator orchestrator, DiffToolLauncher diffLauncher)
     {
         _orchestrator = orchestrator;
         _diffLauncher = diffLauncher;
     }
 
+    /// <summary>
+    /// Runs the interactive session using the provided comparison result and settings.
+    /// </summary>
+    /// <param name="result">Initial comparison result to render.</param>
+    /// <param name="input">Command input used to rerun comparisons.</param>
+    /// <param name="resolved">Resolved settings that guide reruns.</param>
+    /// <param name="cancellationToken">Token used to cancel the session.</param>
+    /// <param name="initialStatusMessage">Optional status message shown at startup.</param>
     public async Task RunAsync(
         ComparisonResult result,
         CompareSettingsInput input,
@@ -137,6 +153,12 @@ public sealed class InteractiveCompareSession
         }
     }
 
+    /// <summary>
+    /// Queues a comparison refresh when the watch command detects file system changes.
+    /// </summary>
+    /// <param name="refreshedMessage">Status message displayed when the refresh succeeds.</param>
+    /// <param name="pausedMessage">Status message displayed when refresh is paused.</param>
+    /// <returns><c>true</c> if the refresh was queued; otherwise, <c>false</c>.</returns>
     public async ValueTask<bool> QueueWatchRefreshAsync(string refreshedMessage, string pausedMessage)
     {
         try
@@ -1057,6 +1079,13 @@ public sealed class InteractiveCompareSession
 
     private sealed class TreeEntry
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TreeEntry"/> class.
+        /// </summary>
+        /// <param name="node">Comparison node represented by the entry.</param>
+        /// <param name="parent">Parent entry in the tree.</param>
+        /// <param name="depth">Depth of the node in the tree.</param>
+        /// <param name="path">Relative path of the node.</param>
         public TreeEntry(ComparisonNode node, TreeEntry? parent, int depth, string path)
         {
             Node = node;
@@ -1065,11 +1094,34 @@ public sealed class InteractiveCompareSession
             Path = path;
         }
 
+        /// <summary>
+        /// Gets the comparison node associated with the entry.
+        /// </summary>
         public ComparisonNode Node { get; }
+
+        /// <summary>
+        /// Gets the parent entry in the tree, if any.
+        /// </summary>
         public TreeEntry? Parent { get; }
+
+        /// <summary>
+        /// Gets the depth of the entry in the tree.
+        /// </summary>
         public int Depth { get; }
+
+        /// <summary>
+        /// Gets the relative path represented by the entry.
+        /// </summary>
         public string Path { get; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the entry is expanded in the UI.
+        /// </summary>
         public bool Expanded { get; set; }
+
+        /// <summary>
+        /// Gets the child entries beneath this node.
+        /// </summary>
         public List<TreeEntry> Children { get; } = new();
     }
 }

@@ -12,15 +12,27 @@ using ParallelCompare.Core.Options;
 
 namespace ParallelCompare.Core.Baselines;
 
+/// <summary>
+/// Executes comparisons between a live directory tree and a previously recorded baseline manifest.
+/// </summary>
 public sealed class BaselineComparisonEngine
 {
     private readonly FileHashCalculator _hashCalculator;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BaselineComparisonEngine"/> class.
+    /// </summary>
+    /// <param name="hashCalculator">Optional hash calculator to reuse for file hashing operations.</param>
     public BaselineComparisonEngine(FileHashCalculator? hashCalculator = null)
     {
         _hashCalculator = hashCalculator ?? new FileHashCalculator();
     }
 
+    /// <summary>
+    /// Executes the comparison asynchronously using the provided options.
+    /// </summary>
+    /// <param name="options">Comparison configuration describing the baseline and input directory.</param>
+    /// <returns>The resulting comparison tree.</returns>
     public Task<ComparisonResult> CompareAsync(BaselineComparisonOptions options)
     {
         return Task.Run(() => CompareInternal(options), options.CancellationToken);

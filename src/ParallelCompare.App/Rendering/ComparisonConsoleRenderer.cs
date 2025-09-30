@@ -7,8 +7,15 @@ using Spectre.Console;
 
 namespace ParallelCompare.App.Rendering;
 
+/// <summary>
+/// Renders comparison results and watch summaries to the console.
+/// </summary>
 public static class ComparisonConsoleRenderer
 {
+    /// <summary>
+    /// Renders the comparison context and summary metrics to the console.
+    /// </summary>
+    /// <param name="result">Comparison result to render.</param>
     public static void RenderSummary(ComparisonResult result)
     {
         AnsiConsole.Write(BuildContextPanel(result));
@@ -28,6 +35,11 @@ public static class ComparisonConsoleRenderer
         AnsiConsole.Write(table);
     }
 
+    /// <summary>
+    /// Writes a descriptive status line summarizing the active watch session.
+    /// </summary>
+    /// <param name="result">Most recent comparison result.</param>
+    /// <param name="resolved">Resolved settings used for the run.</param>
     public static void RenderWatchStatus(ComparisonResult result, ResolvedCompareSettings resolved)
     {
         string message;
@@ -45,6 +57,11 @@ public static class ComparisonConsoleRenderer
         AnsiConsole.MarkupLine($"[grey]{message}[/]");
     }
 
+    /// <summary>
+    /// Renders a tree view of the comparison result up to the specified depth.
+    /// </summary>
+    /// <param name="result">Comparison result to display.</param>
+    /// <param name="maxDepth">Maximum depth to expand within the tree.</param>
     public static void RenderTree(ComparisonResult result, int maxDepth = 3)
     {
         var tree = new Tree(GetNodeLabel(result.Root));

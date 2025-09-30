@@ -11,17 +11,25 @@ using Spectre.Console.Cli;
 
 namespace ParallelCompare.App.Commands;
 
+/// <summary>
+/// Implements the <c>watch</c> command that monitors directories and reruns comparisons.
+/// </summary>
 public sealed class WatchCommand : AsyncCommand<WatchCommandSettings>
 {
     private readonly ComparisonOrchestrator _orchestrator;
     private readonly DiffToolLauncher _diffLauncher;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WatchCommand"/> class.
+    /// </summary>
+    /// <param name="orchestrator">Service responsible for executing comparisons.</param>
     public WatchCommand(ComparisonOrchestrator orchestrator)
     {
         _orchestrator = orchestrator;
         _diffLauncher = new DiffToolLauncher();
     }
 
+    /// <inheritdoc />
     public override async Task<int> ExecuteAsync(CommandContext context, WatchCommandSettings settings)
     {
         var input = _orchestrator.BuildInput(settings);

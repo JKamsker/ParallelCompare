@@ -2,6 +2,9 @@ using System;
 
 namespace ParallelCompare.App.Interactive;
 
+/// <summary>
+/// Defines the subset of nodes displayed in the interactive tree.
+/// </summary>
 public enum InteractiveFilter
 {
     All,
@@ -11,8 +14,16 @@ public enum InteractiveFilter
     Errors
 }
 
+/// <summary>
+/// Helper methods for working with <see cref="InteractiveFilter"/> values.
+/// </summary>
 public static class InteractiveFilterExtensions
 {
+    /// <summary>
+    /// Parses a string into an <see cref="InteractiveFilter"/> value.
+    /// </summary>
+    /// <param name="value">Filter identifier (e.g. <c>diff</c>, <c>errors</c>).</param>
+    /// <returns>The resolved filter value.</returns>
     public static InteractiveFilter Parse(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -30,6 +41,11 @@ public static class InteractiveFilterExtensions
         };
     }
 
+    /// <summary>
+    /// Converts the filter to a user-friendly display name.
+    /// </summary>
+    /// <param name="filter">Filter value.</param>
+    /// <returns>Human-readable display name.</returns>
     public static string ToDisplayName(this InteractiveFilter filter)
         => filter switch
         {
