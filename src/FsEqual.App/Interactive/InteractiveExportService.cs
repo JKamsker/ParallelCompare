@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FsEqual.Core.Comparison;
 using FsEqual.Core.Options;
+using FsEqual.Core.Reporting;
 
 namespace FsEqual.App.Interactive;
 
@@ -77,7 +78,7 @@ public sealed class InteractiveExportService
             result.RightPath,
             nodes = nodes.Select(node => new
             {
-                path = GetNodePath(node),
+                path = ReportTextUtilities.GetNodePath(node),
                 type = node.NodeType.ToString(),
                 status = node.Status.ToString(),
                 detail = node.Detail is null
@@ -119,16 +120,16 @@ public sealed class InteractiveExportService
 
             builder.AppendLine(string.Join(',', new[]
             {
-                EscapeCsv(GetNodePath(node)),
-                EscapeCsv(node.NodeType.ToString()),
-                EscapeCsv(node.Status.ToString()),
-                EscapeCsv(detail?.LeftSize?.ToString() ?? string.Empty),
-                EscapeCsv(detail?.RightSize?.ToString() ?? string.Empty),
-                EscapeCsv(detail?.LeftModified?.ToString("u") ?? string.Empty),
-                EscapeCsv(detail?.RightModified?.ToString("u") ?? string.Empty),
-                EscapeCsv(leftHash ?? string.Empty),
-                EscapeCsv(rightHash ?? string.Empty),
-                EscapeCsv(error)
+                ReportTextUtilities.EscapeCsv(ReportTextUtilities.GetNodePath(node)),
+                ReportTextUtilities.EscapeCsv(node.NodeType.ToString()),
+                ReportTextUtilities.EscapeCsv(node.Status.ToString()),
+                ReportTextUtilities.EscapeCsv(detail?.LeftSize?.ToString() ?? string.Empty),
+                ReportTextUtilities.EscapeCsv(detail?.RightSize?.ToString() ?? string.Empty),
+                ReportTextUtilities.EscapeCsv(detail?.LeftModified?.ToString("u") ?? string.Empty),
+                ReportTextUtilities.EscapeCsv(detail?.RightModified?.ToString("u") ?? string.Empty),
+                ReportTextUtilities.EscapeCsv(leftHash ?? string.Empty),
+                ReportTextUtilities.EscapeCsv(rightHash ?? string.Empty),
+                ReportTextUtilities.EscapeCsv(error)
             }));
         }
 
@@ -145,8 +146,8 @@ public sealed class InteractiveExportService
         var builder = new StringBuilder();
         builder.AppendLine($"# FsEqual Export");
         builder.AppendLine();
-        builder.AppendLine($"- Left: `{EscapeMarkdown(result.LeftPath)}`");
-        builder.AppendLine($"- Right: `{EscapeMarkdown(result.RightPath)}`");
+        builder.AppendLine($"- Left: `{ReportTextUtilities.EscapeMarkdown(result.LeftPath)}`");
+        builder.AppendLine($"- Right: `{ReportTextUtilities.EscapeMarkdown(result.RightPath)}`");
         builder.AppendLine($"- Generated: {DateTimeOffset.UtcNow:u}");
         builder.AppendLine();
         builder.AppendLine("| Path | Type | Status | Left Size | Right Size | Left Modified | Right Modified | Left Hash | Right Hash | Error |");
@@ -162,30 +163,20 @@ public sealed class InteractiveExportService
 
             builder.AppendLine(string.Join(" | ", new[]
             {
-                EscapeMarkdown(GetNodePath(node)),
-                EscapeMarkdown(node.NodeType.ToString()),
-                EscapeMarkdown(node.Status.ToString()),
-                EscapeMarkdown(detail?.LeftSize?.ToString() ?? string.Empty),
-                EscapeMarkdown(detail?.RightSize?.ToString() ?? string.Empty),
-                EscapeMarkdown(detail?.LeftModified?.ToString("u") ?? string.Empty),
-                EscapeMarkdown(detail?.RightModified?.ToString("u") ?? string.Empty),
-                EscapeMarkdown(leftHash),
-                EscapeMarkdown(rightHash),
-                EscapeMarkdown(detail?.ErrorMessage ?? string.Empty)
+                ReportTextUtilities.EscapeMarkdown(ReportTextUtilities.GetNodePath(node)),
+                ReportTextUtilities.EscapeMarkdown(node.NodeType.ToString()),
+                ReportTextUtilities.EscapeMarkdown(node.Status.ToString()),
+                ReportTextUtilities.EscapeMarkdown(detail?.LeftSize?.ToString() ?? string.Empty),
+                ReportTextUtilities.EscapeMarkdown(detail?.RightSize?.ToString() ?? string.Empty),
+                ReportTextUtilities.EscapeMarkdown(detail?.LeftModified?.ToString("u") ?? string.Empty),
+                ReportTextUtilities.EscapeMarkdown(detail?.RightModified?.ToString("u") ?? string.Empty),
+                ReportTextUtilities.EscapeMarkdown(leftHash),
+                ReportTextUtilities.EscapeMarkdown(rightHash),
+                ReportTextUtilities.EscapeMarkdown(detail?.ErrorMessage ?? string.Empty)
             }));
         }
 
         await File.WriteAllTextAsync(destination, builder.ToString(), cancellationToken);
-    }
-
-    private static string GetNodePath(ComparisonNode node)
-    {
-        if (string.IsNullOrWhiteSpace(node.RelativePath))
-        {
-            return node.Name;
-        }
-
-        return node.RelativePath.Replace(Path.DirectorySeparatorChar, '/');
     }
 
     private static string? GetHash(
@@ -206,19 +197,4 @@ public sealed class InteractiveExportService
             .Select(pair => pair.Value)
             .FirstOrDefault();
     }
-
-    private static string EscapeCsv(string value)
-    {
-        if (value.Contains('"') || value.Contains(',') || value.Contains('\n'))
-        {
-            return $"\"{value.Replace("\"", "\"\"")}\"";
-        }
-
-        return value;
-    }
-
-    private static string EscapeMarkdown(string value)
-        => value
-            .Replace("|", "\\|")
-            .Replace("`", "\\`");
 }

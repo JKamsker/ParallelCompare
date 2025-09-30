@@ -81,6 +81,24 @@ public class CompareCommandSettings : CommandSettings
     public string? SummaryReport { get; init; }
 
     /// <summary>
+    /// Gets the output path for the CSV report.
+    /// </summary>
+    [CommandOption("--csv")]
+    public string? CsvReport { get; init; }
+
+    /// <summary>
+    /// Gets the output path for the Markdown report.
+    /// </summary>
+    [CommandOption("--markdown|--md")]
+    public string? MarkdownReport { get; init; }
+
+    /// <summary>
+    /// Gets the output path for the HTML report.
+    /// </summary>
+    [CommandOption("--html")]
+    public string? HtmlReport { get; init; }
+
+    /// <summary>
     /// Gets the named export bundle to execute after the comparison.
     /// </summary>
     [CommandOption("--export")]

@@ -98,6 +98,24 @@ public class CompareProfile
     public string? SummaryReport { get; init; }
 
     /// <summary>
+    /// Gets the output path for the CSV report exporter.
+    /// </summary>
+    [JsonPropertyName("csv")]
+    public string? CsvReport { get; init; }
+
+    /// <summary>
+    /// Gets the output path for the Markdown report exporter.
+    /// </summary>
+    [JsonPropertyName("markdown")]
+    public string? MarkdownReport { get; init; }
+
+    /// <summary>
+    /// Gets the output path for the HTML report exporter.
+    /// </summary>
+    [JsonPropertyName("html")]
+    public string? HtmlReport { get; init; }
+
+    /// <summary>
     /// Gets the named export format bundle to invoke.
     /// </summary>
     [JsonPropertyName("export")]

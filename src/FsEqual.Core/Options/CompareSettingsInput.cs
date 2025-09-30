@@ -78,6 +78,21 @@ public sealed record CompareSettingsInput
     public string? SummaryReportPath { get; init; }
 
     /// <summary>
+    /// Gets the output path for the CSV report exporter.
+    /// </summary>
+    public string? CsvReportPath { get; init; }
+
+    /// <summary>
+    /// Gets the output path for the Markdown report exporter.
+    /// </summary>
+    public string? MarkdownReportPath { get; init; }
+
+    /// <summary>
+    /// Gets the output path for the HTML report exporter.
+    /// </summary>
+    public string? HtmlReportPath { get; init; }
+
+    /// <summary>
     /// Gets the named export format bundle to run.
     /// </summary>
     public string? ExportFormat { get; init; }

@@ -55,6 +55,56 @@ public sealed class ComparisonOrchestratorTests : IDisposable
     }
 
     [Fact]
+    public async Task RunAsync_WritesMultipleExports()
+    {
+        var left = CreateDirectory("exports-left", new PhysicalFile
+        {
+            RelativePath = "file.txt",
+            Content = "left"
+        });
+
+        var right = CreateDirectory("exports-right", new PhysicalFile
+        {
+            RelativePath = "file.txt",
+            Content = "right"
+        });
+
+        var orchestrator = new ComparisonOrchestrator();
+        var json = Path.Combine(_root, "report.json");
+        var csv = Path.Combine(_root, "report.csv");
+        var markdown = Path.Combine(_root, "report.md");
+
+        var input = new CompareSettingsInput
+        {
+            LeftPath = left,
+            RightPath = right,
+            JsonReportPath = json,
+            CsvReportPath = csv,
+            MarkdownReportPath = markdown
+        };
+
+        await orchestrator.RunAsync(input, CancellationToken.None);
+
+        File.Exists(json).Should().BeTrue();
+        File.Exists(csv).Should().BeTrue();
+        File.Exists(markdown).Should().BeTrue();
+
+        using (var document = JsonDocument.Parse(await File.ReadAllTextAsync(json)))
+        {
+            document.RootElement.GetProperty("metadata").GetProperty("leftPath").GetString().Should().Be(left);
+            document.RootElement.GetProperty("differences").EnumerateArray().Should().NotBeEmpty();
+        }
+
+        var markdownContent = await File.ReadAllTextAsync(markdown);
+        markdownContent.Should().Contain("# FsEqual Report");
+        markdownContent.Should().Contain("| Path | Type | Status |");
+
+        var csvContent = await File.ReadAllTextAsync(csv);
+        csvContent.Should().Contain("# metadata");
+        csvContent.Should().Contain("Path,Type,Status");
+    }
+
+    [Fact]
     public async Task RunAsync_WithBaselineManifestUsesSnapshot()
     {
         var left = CreateDirectory("left-baseline", new PhysicalFile

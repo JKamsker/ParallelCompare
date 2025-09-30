@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
@@ -19,7 +20,7 @@ public sealed class ComparisonOrchestrator
     private readonly ConfigurationLoader _configurationLoader = new();
     private readonly CompareSettingsResolver _resolver = new();
     private readonly ComparisonEngine _engine = new();
-    private readonly ComparisonResultExporter _exporter = new();
+    private readonly ExportRegistry _exportRegistry = new();
     private readonly BaselineComparisonEngine _baselineEngine = new();
     private readonly BaselineSnapshotGenerator _snapshotGenerator = new();
     private readonly BaselineManifestSerializer _baselineSerializer = new();
@@ -54,6 +55,9 @@ public sealed class ComparisonOrchestrator
             BaselinePath = settings.Baseline,
             JsonReportPath = settings.JsonReport,
             SummaryReportPath = settings.SummaryReport,
+            CsvReportPath = settings.CsvReport,
+            MarkdownReportPath = settings.MarkdownReport,
+            HtmlReportPath = settings.HtmlReport,
             ExportFormat = settings.ExportFormat,
             NoProgress = settings.NoProgress,
             DiffTool = settings.DiffTool,
@@ -151,6 +155,9 @@ public sealed class ComparisonOrchestrator
             EnableInteractive = enableInteractive,
             JsonReportPath = resolved.JsonReportPath,
             SummaryReportPath = resolved.SummaryReportPath,
+            CsvReportPath = resolved.CsvReportPath,
+            MarkdownReportPath = resolved.MarkdownReportPath,
+            HtmlReportPath = resolved.HtmlReportPath,
             ExportFormat = resolved.ExportFormat,
             NoProgress = resolved.NoProgress,
             DiffTool = resolved.DiffTool,
@@ -215,15 +222,34 @@ public sealed class ComparisonOrchestrator
         ResolvedCompareSettings resolved,
         CancellationToken cancellationToken)
     {
-        if (!string.IsNullOrWhiteSpace(resolved.JsonReportPath))
+        var requests = BuildExportRequests(resolved);
+        if (requests.Count == 0)
         {
-            await _exporter.WriteJsonAsync(result, resolved.JsonReportPath!, cancellationToken);
+            return;
         }
 
-        if (!string.IsNullOrWhiteSpace(resolved.SummaryReportPath))
+        await _exportRegistry.ExportAsync(result, resolved, requests, cancellationToken);
+    }
+
+    private static List<ReportExportRequest> BuildExportRequests(ResolvedCompareSettings resolved)
+    {
+        var requests = new List<ReportExportRequest>();
+        AddRequest(requests, ReportExportFormats.Json, resolved.JsonReportPath);
+        AddRequest(requests, ReportExportFormats.Summary, resolved.SummaryReportPath);
+        AddRequest(requests, ReportExportFormats.Csv, resolved.CsvReportPath);
+        AddRequest(requests, ReportExportFormats.Markdown, resolved.MarkdownReportPath);
+        AddRequest(requests, ReportExportFormats.Html, resolved.HtmlReportPath);
+        return requests;
+    }
+
+    private static void AddRequest(ICollection<ReportExportRequest> requests, string format, string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
         {
-            await _exporter.WriteSummaryAsync(result, resolved.SummaryReportPath!, cancellationToken);
+            return;
         }
+
+        requests.Add(new ReportExportRequest(format, path));
     }
 
     private static bool ShouldUseBaseline(ResolvedCompareSettings resolved)
