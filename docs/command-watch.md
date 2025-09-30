@@ -15,6 +15,8 @@ The `<left>` and optional `[right]` arguments match the semantics of `compare`. 
 | Option | Description |
 | --- | --- |
 | `--debounce <milliseconds>` | Waits for the specified quiet period before triggering a rerun (default `750`). |
+| `-q|--quiet` | Minimizes console output between reruns (summaries and trees are skipped). |
+| `--dry-run` | Resolves configuration and validates paths without starting the watch loop. |
 
 All other options from [`compare`](command-compare.md) are available, including exporters, diff tool integration, and interactive mode.
 
@@ -36,4 +38,10 @@ Monitor a directory against a baseline in headless mode but still emit reports:
 
 ```bash
 fsequal watch ./src --baseline artifacts/baseline.json --json artifacts/watch-report.json --summary artifacts/watch-summary.json
+```
+
+Validate inputs prior to starting a long-running watch session:
+
+```bash
+fsequal watch ./src ./baseline --dry-run
 ```

@@ -836,6 +836,11 @@ public sealed class InteractiveCompareSession
                 .StartAsync("Running comparison...", async _ =>
                 {
                     var run = await _orchestrator.RunAsync(updatedInput, _cancellationToken);
+                    if (run.Result is null)
+                    {
+                        throw new InvalidOperationException("Interactive sessions are not supported during dry runs.");
+                    }
+
                     _result = run.Result;
                     _resolved = run.Resolved;
                     _input = updatedInput;

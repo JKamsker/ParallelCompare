@@ -108,6 +108,11 @@ public sealed record CompareSettingsInput
     public string? Verbosity { get; init; }
 
     /// <summary>
+    /// Gets a value indicating whether console output should be minimized.
+    /// </summary>
+    public bool Quiet { get; init; }
+
+    /// <summary>
     /// Gets the failure condition expression (e.g., errors, differences).
     /// </summary>
     public string? FailOn { get; init; }
@@ -131,4 +136,9 @@ public sealed record CompareSettingsInput
     /// Gets the verbosity level for interactive logging panes.
     /// </summary>
     public string? InteractiveVerbosity { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the run should validate inputs without executing.
+    /// </summary>
+    public bool DryRun { get; init; }
 }

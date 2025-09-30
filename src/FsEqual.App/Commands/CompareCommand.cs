@@ -30,6 +30,12 @@ public sealed class CompareCommand : AsyncCommand<CompareCommandSettings>
     /// <inheritdoc />
     public override async Task<int> ExecuteAsync(CommandContext context, CompareCommandSettings settings)
     {
+        if (settings.DryRun && settings.Interactive)
+        {
+            AnsiConsole.MarkupLine("[red]--dry-run cannot be combined with --interactive.[/]");
+            return 2;
+        }
+
         var input = _orchestrator.BuildInput(settings);
         using var cancellation = new CancellationTokenSource();
         ConsoleCancelEventHandler? handler = null;
@@ -48,12 +54,22 @@ public sealed class CompareCommand : AsyncCommand<CompareCommandSettings>
             };
             Console.CancelKeyPress += handler;
 
-            (var result, var resolved) = settings.NoProgress
+            (var result, var resolved) = input.NoProgress
                 ? await _orchestrator.RunAsync(input, cancellation.Token)
                 : await AnsiConsole.Status()
                     .StartAsync("Comparing directories...", async _ => await _orchestrator.RunAsync(input, cancellation.Token));
 
-            ComparisonConsoleRenderer.RenderSummary(result);
+            if (result is null)
+            {
+                if (!settings.Quiet)
+                {
+                    AnsiConsole.MarkupLine("[green]Dry run completed. Inputs validated successfully.[/]");
+                }
+
+                return 0;
+            }
+
+            ComparisonConsoleRenderer.RenderSummary(result, settings.Quiet);
 
             if (settings.Interactive)
             {
@@ -61,14 +77,18 @@ public sealed class CompareCommand : AsyncCommand<CompareCommandSettings>
             }
             else
             {
-                ComparisonConsoleRenderer.RenderTree(result);
+                ComparisonConsoleRenderer.RenderTree(result, quiet: settings.Quiet);
             }
 
             return DetermineExitCode(resolved.FailOn, result);
         }
         catch (OperationCanceledException)
         {
-            AnsiConsole.MarkupLine("[yellow]Comparison cancelled.[/]");
+            if (!settings.Quiet)
+            {
+                AnsiConsole.MarkupLine("[yellow]Comparison cancelled.[/]");
+            }
+
             return 2;
         }
         catch (Exception ex)

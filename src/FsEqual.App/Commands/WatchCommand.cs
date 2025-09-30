@@ -32,6 +32,12 @@ public sealed class WatchCommand : AsyncCommand<WatchCommandSettings>
     /// <inheritdoc />
     public override async Task<int> ExecuteAsync(CommandContext context, WatchCommandSettings settings)
     {
+        if (settings.DryRun && settings.Interactive)
+        {
+            AnsiConsole.MarkupLine("[red]--dry-run cannot be combined with --interactive.[/]");
+            return 2;
+        }
+
         var input = _orchestrator.BuildInput(settings);
         using var cancellation = new CancellationTokenSource();
         ConsoleCancelEventHandler? handler = null;
@@ -51,6 +57,16 @@ public sealed class WatchCommand : AsyncCommand<WatchCommandSettings>
             Console.CancelKeyPress += handler;
 
             var resolvedRun = await _orchestrator.RunAsync(input, cancellation.Token);
+
+            if (resolvedRun.Result is null)
+            {
+                if (!settings.Quiet)
+                {
+                    AnsiConsole.MarkupLine("[green]Dry run completed. Inputs validated successfully.[/]");
+                }
+
+                return 0;
+            }
 
             if (settings.Interactive)
             {
@@ -74,7 +90,10 @@ public sealed class WatchCommand : AsyncCommand<WatchCommandSettings>
                 rightWatcher.EnableRaisingEvents = true;
             }
 
-            AnsiConsole.MarkupLine("[grey]Watching for changes. Press Ctrl+C to stop.[/]");
+            if (!settings.Quiet)
+            {
+                AnsiConsole.MarkupLine("[grey]Watching for changes. Press Ctrl+C to stop.[/]");
+            }
             try
             {
                 await Task.Delay(Timeout.Infinite, cancellation.Token);
@@ -101,6 +120,16 @@ public sealed class WatchCommand : AsyncCommand<WatchCommandSettings>
                 try
                 {
                     var run = await _orchestrator.RunAsync(input, cancellation.Token);
+                    if (run.Result is null)
+                    {
+                        if (!settings.Quiet)
+                        {
+                            AnsiConsole.MarkupLine("[yellow]Dry run requested; skipping watch refresh.[/]");
+                        }
+
+                        return;
+                    }
+
                     Render(run.Result, run.Resolved, settings);
                 }
                 catch (OperationCanceledException)
@@ -115,7 +144,11 @@ public sealed class WatchCommand : AsyncCommand<WatchCommandSettings>
         }
         catch (OperationCanceledException)
         {
-            AnsiConsole.MarkupLine("[yellow]Watch cancelled.[/]");
+            if (!settings.Quiet)
+            {
+                AnsiConsole.MarkupLine("[yellow]Watch cancelled.[/]");
+            }
+
             return 2;
         }
         catch (Exception ex)
@@ -161,7 +194,10 @@ public sealed class WatchCommand : AsyncCommand<WatchCommandSettings>
             rightWatcher.EnableRaisingEvents = true;
         }
 
-        AnsiConsole.MarkupLine("[grey]Watching for changes. Press Ctrl+C to stop.[/]");
+        if (!settings.Quiet)
+        {
+            AnsiConsole.MarkupLine("[grey]Watching for changes. Press Ctrl+C to stop.[/]");
+        }
 
         var initialStatus = resolved.UsesBaseline && resolved.BaselineMetadata is { } baseline
             ? $"Watching {resolved.LeftPath} against baseline {baseline.ManifestPath}."
@@ -206,12 +242,16 @@ public sealed class WatchCommand : AsyncCommand<WatchCommandSettings>
 
     private static void Render(Core.Comparison.ComparisonResult result, ResolvedCompareSettings resolved, WatchCommandSettings settings)
     {
-        AnsiConsole.Clear();
-        ComparisonConsoleRenderer.RenderSummary(result);
-        ComparisonConsoleRenderer.RenderWatchStatus(result, resolved);
+        if (!settings.Quiet)
+        {
+            AnsiConsole.Clear();
+        }
+
+        ComparisonConsoleRenderer.RenderSummary(result, settings.Quiet);
+        ComparisonConsoleRenderer.RenderWatchStatus(result, resolved, settings.Quiet);
         if (!settings.Interactive)
         {
-            ComparisonConsoleRenderer.RenderTree(result, maxDepth: 2);
+            ComparisonConsoleRenderer.RenderTree(result, maxDepth: 2, quiet: settings.Quiet);
         }
     }
 }

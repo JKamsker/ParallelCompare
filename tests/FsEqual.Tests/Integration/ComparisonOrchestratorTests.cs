@@ -50,7 +50,8 @@ public sealed class ComparisonOrchestratorTests : IDisposable
         var (result, resolved) = await orchestrator.RunAsync(input, CancellationToken.None);
 
         resolved.UsesBaseline.Should().BeFalse();
-        result.Summary.LeftOnlyFiles.Should().Be(1);
+        result.Should().NotBeNull();
+        result!.Summary.LeftOnlyFiles.Should().Be(1);
         result.Root.Children.Should().Contain(node => node.Name == "nested" && node.Status == ComparisonStatus.LeftOnly);
     }
 
@@ -85,8 +86,40 @@ public sealed class ComparisonOrchestratorTests : IDisposable
         var (result, resolved) = await orchestrator.RunAsync(compareInput, CancellationToken.None);
 
         resolved.UsesBaseline.Should().BeTrue();
-        result.Baseline.Should().NotBeNull();
+        result.Should().NotBeNull();
+        result!.Baseline.Should().NotBeNull();
         result.Summary.DifferentFiles.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task RunAsync_DryRunReturnsWithoutExecuting()
+    {
+        var left = CreateDirectory("dry-left", new PhysicalFile
+        {
+            RelativePath = "file.txt",
+            Content = "dry"
+        });
+
+        var right = CreateDirectory("dry-right", new PhysicalFile
+        {
+            RelativePath = "file.txt",
+            Content = "dry"
+        });
+
+        var orchestrator = new ComparisonOrchestrator();
+        var input = new CompareSettingsInput
+        {
+            LeftPath = left,
+            RightPath = right,
+            DryRun = true
+        };
+
+        var (result, resolved) = await orchestrator.RunAsync(input, CancellationToken.None);
+
+        result.Should().BeNull();
+        resolved.LeftPath.Should().Be(Path.GetFullPath(left));
+        resolved.RightPath.Should().Be(Path.GetFullPath(right));
+        resolved.UsesBaseline.Should().BeFalse();
     }
 
     [Fact]

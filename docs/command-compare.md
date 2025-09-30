@@ -26,6 +26,8 @@ fsequal compare <left> [right]
 | `--export <name>` | Runs an exporter bundle defined in configuration. |
 | `--diff-tool <path>` | Launches an external diff tool when selecting files in the TUI. |
 | `--profile <name>` | Applies a named configuration profile. |
+| `-q|--quiet` | Suppresses non-essential console output (still writes exports and errors). |
+| `--dry-run` | Validates inputs and configuration without executing the comparison engine. |
 | `--interactive` | Opens the Spectre.Console-powered inspector after the initial run. |
 | `--fail-on <policy>` | Controls the exit code (`any`, `diff`, or `error`). |
 | `--timeout <seconds>` | Aborts the run after the specified timeout. |
@@ -50,4 +52,10 @@ Run in headless mode but still capture a Markdown export bundle defined in confi
 
 ```bash
 fsequal compare ./src ./baseline --export markdown-bundle --no-progress
+```
+
+Validate a configuration and export paths without traversing the file system:
+
+```bash
+fsequal compare ./src ./baseline --dry-run --quiet
 ```
