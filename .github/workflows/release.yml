@@ -1,23 +1,34 @@
 name: Release
 
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - main
 
 jobs:
-  build-and-verify:
-    name: Build and verify release artifacts
+  build-and-release:
+    name: Build, test, and release
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |-
+          dotnet-version: |
             8.0.x
+
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v3
+        with:
+          versionSpec: '5.x'
+
+      - name: Determine version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v3
 
       - name: Restore dependencies
         run: dotnet restore
@@ -28,12 +39,20 @@ jobs:
       - name: Test
         run: dotnet test --configuration Release --no-build --logger:"console;verbosity=minimal"
 
-      # - name: Publish to NuGet
-      #   env:
-      #     NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-      #   run: |
-      #     dotnet pack --configuration Release --no-build
-      #     dotnet nuget push "**/*.nupkg" \
-      #       --api-key "$NUGET_API_KEY" \
-      #       --source "https://api.nuget.org/v3/index.json" \
-      #       --skip-duplicate
+      - name: Pack artifacts
+        run: dotnet pack --configuration Release --no-build /p:PackageVersion=${{ steps.gitversion.outputs.nuGetVersionV2 }}
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: '**/*.nupkg'
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.gitversion.outputs.semVer }}
+          name: v${{ steps.gitversion.outputs.semVer }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
