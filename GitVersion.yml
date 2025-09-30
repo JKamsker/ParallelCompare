@@ -3,8 +3,5 @@ branches:
   main:
     regex: ^main$
     increment: Patch
-    prevent-increment-of-merged-branch-version: true
-    label: ''
-    is-mainline: true
 ignore:
   sha: []
