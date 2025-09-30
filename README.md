@@ -1,6 +1,6 @@
-# ParallelCompare
+# FsEqual
 
-ParallelCompare is a fast, Spectre.Console-powered comparison tool that inspects two directory trees (or a tree against a saved baseline) in parallel. The experience unifies a rich interactive TUI, automation-friendly CLI, snapshotting, and export pipelines so that changes are always clear—whether you are shipping to production or reviewing a pull request.
+FsEqual is a fast, Spectre.Console-powered comparison tool that inspects two directory trees (or a tree against a saved baseline) in parallel. The experience unifies a rich interactive TUI, automation-friendly CLI, snapshotting, and export pipelines so that changes are always clear—whether you are shipping to production or reviewing a pull request.
 
 ## Highlights
 
@@ -23,7 +23,7 @@ dotnet tool update --global FsEqual.Tool
 For isolated scenarios, publish a self-contained binary:
 
 ```bash
-dotnet publish src/ParallelCompare.App -c Release -r <rid>
+dotnet publish src/FsEqual.App -c Release -r <rid>
 ```
 
 ## Quick start
@@ -59,7 +59,7 @@ fsequal snapshot ./src --output artifacts/baseline.json
 
 ## Contributing
 
-1. Clone the repository and install the .NET SDK 7.0 or newer.
+1. Clone the repository and install the .NET SDK 9.0 or newer.
 2. Restore dependencies and run the test suite:
    ```bash
    dotnet test
@@ -68,4 +68,4 @@ fsequal snapshot ./src --output artifacts/baseline.json
 
 ## License
 
-ParallelCompare is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+FsEqual is licensed under the MIT License. See [LICENSE](LICENSE) for details.

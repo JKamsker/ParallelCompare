@@ -1,6 +1,6 @@
 # Onboarding Guide
 
-Welcome to ParallelCompare! This guide helps new users ramp up quickly on the consolidated CLI + TUI experience.
+Welcome to FsEqual! This guide helps new users ramp up quickly on the consolidated CLI + TUI experience.
 
 ## 1. Install the Tool
 

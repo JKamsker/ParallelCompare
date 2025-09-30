@@ -1,6 +1,6 @@
-# ParallelCompare User Guide
+# FsEqual User Guide
 
-ParallelCompare (`fsequal`) compares directory trees quickly while offering a full interactive inspector. This guide summarizes how to install, configure, and operate the consolidated experience across CLI, watch mode, snapshots, and exporters.
+FsEqual (`fsequal`) compares directory trees quickly while offering a full interactive inspector. This guide summarizes how to install, configure, and operate the consolidated experience across CLI, watch mode, snapshots, and exporters.
 
 ## Installation
 

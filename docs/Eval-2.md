@@ -1,4 +1,4 @@
-# fsEqual/ParallelCompare: Consolidated Implementation Evaluation
+# fsEqual/FsEqual: Consolidated Implementation Evaluation
 
 ## Executive Summary
 

@@ -531,7 +531,7 @@ fsEqual/
 
 * **Dockerfile**:
   ```dockerfile
-  FROM mcr.microsoft.com/dotnet/runtime:8.0
+  FROM mcr.microsoft.com/dotnet/runtime:9.0
   COPY --from=build /app/out /app
   ENTRYPOINT ["dotnet", "/app/FsEqual.Cli.dll"]
   ```
@@ -555,7 +555,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '9.0.x'
       - run: dotnet restore
       - run: dotnet build -c Release --no-restore
       - run: dotnet test -c Release --no-build --verbosity normal --collect:"XPlat Code Coverage"
@@ -607,7 +607,7 @@ jobs:
       - run: |
           dotnet publish src/FsEqual.Cli -c Release -r ${{ matrix.rid }} \
             -p:PublishSingleFile=true -p:PublishTrimmed=true --self-contained
-          cd src/FsEqual.Cli/bin/Release/net8.0/${{ matrix.rid }}/publish
+          cd src/FsEqual.Cli/bin/Release/net9.0/${{ matrix.rid }}/publish
           tar -czf fsequal-${{ github.ref_name }}-${{ matrix.rid }}.tar.gz *
       - uses: actions/upload-artifact@v4
         with:

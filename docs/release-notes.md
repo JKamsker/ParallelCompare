@@ -1,4 +1,4 @@
-# ParallelCompare Release Notes
+# FsEqual Release Notes
 
 ## v1.0.0
 

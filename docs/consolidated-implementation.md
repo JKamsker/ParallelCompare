@@ -1,4 +1,4 @@
-# ParallelCompare Consolidated Implementation Plan
+# FsEqual Consolidated Implementation Plan
 
 ## Purpose
 
