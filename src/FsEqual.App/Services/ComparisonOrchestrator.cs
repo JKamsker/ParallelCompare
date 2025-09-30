@@ -36,6 +36,7 @@ public sealed class ComparisonOrchestrator
         var additional = algorithms.Length > 1
             ? algorithms.Skip(1).ToImmutableArray()
             : ImmutableArray<string>.Empty;
+        int? debounce = (settings as WatchCommandSettings)?.DebounceMilliseconds;
 
         return new CompareSettingsInput
         {
@@ -62,7 +63,8 @@ public sealed class ComparisonOrchestrator
             Verbosity = settings.Verbosity,
             FailOn = settings.FailOn,
             Timeout = settings.TimeoutSeconds.HasValue ? TimeSpan.FromSeconds(settings.TimeoutSeconds.Value) : null,
-            EnableInteractive = settings.Interactive
+            EnableInteractive = settings.Interactive,
+            DebounceMilliseconds = debounce
         };
     }
 

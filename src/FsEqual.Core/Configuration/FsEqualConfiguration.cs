@@ -138,4 +138,10 @@ public class CompareProfile
     /// </summary>
     [JsonPropertyName("interactiveVerbosity")]
     public string? InteractiveVerbosity { get; init; }
+
+    /// <summary>
+    /// Gets the debounce interval, in milliseconds, to apply when running in watch mode.
+    /// </summary>
+    [JsonPropertyName("debounceMilliseconds")]
+    public int? DebounceMilliseconds { get; init; }
 }

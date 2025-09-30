@@ -40,18 +40,20 @@ public static class ComparisonConsoleRenderer
     /// </summary>
     /// <param name="result">Most recent comparison result.</param>
     /// <param name="resolved">Resolved settings used for the run.</param>
-    public static void RenderWatchStatus(ComparisonResult result, ResolvedCompareSettings resolved)
+    /// <param name="lastSuccessfulRun">Timestamp of the last successful comparison execution.</param>
+    public static void RenderWatchStatus(ComparisonResult result, ResolvedCompareSettings resolved, DateTimeOffset lastSuccessfulRun)
     {
         string message;
+        var timestamp = Markup.Escape(lastSuccessfulRun.ToLocalTime().ToString("T"));
 
         if (resolved.UsesBaseline && result.Baseline is { } baseline)
         {
             var manifestName = Path.GetFileName(baseline.ManifestPath);
-            message = $"Watching [bold]{Markup.Escape(result.LeftPath)}[/] against baseline [bold]{Markup.Escape(manifestName)}[/] captured {baseline.CreatedAt:u}.";
+            message = $"Watching [bold]{Markup.Escape(result.LeftPath)}[/] against baseline [bold]{Markup.Escape(manifestName)}[/] captured {baseline.CreatedAt:u}. Last successful comparison at {timestamp}.";
         }
         else
         {
-            message = $"Watching [bold]{Markup.Escape(result.LeftPath)}[/] and [bold]{Markup.Escape(result.RightPath)}[/].";
+            message = $"Watching [bold]{Markup.Escape(result.LeftPath)}[/] and [bold]{Markup.Escape(result.RightPath)}[/]. Last successful comparison at {timestamp}.";
         }
 
         AnsiConsole.MarkupLine($"[grey]{message}[/]");

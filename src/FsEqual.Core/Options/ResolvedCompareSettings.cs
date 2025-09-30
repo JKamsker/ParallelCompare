@@ -125,6 +125,11 @@ public sealed record ResolvedCompareSettings
     public BaselineMetadata? BaselineMetadata { get; init; }
 
     /// <summary>
+    /// Gets the debounce interval, in milliseconds, applied when watching for changes.
+    /// </summary>
+    public int? WatchDebounceMilliseconds { get; init; }
+
+    /// <summary>
     /// Gets the file system abstraction used by the comparison engine.
     /// </summary>
     public IFileSystem FileSystem { get; init; } = PhysicalFileSystem.Instance;
