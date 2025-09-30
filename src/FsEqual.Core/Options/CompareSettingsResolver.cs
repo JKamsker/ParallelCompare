@@ -2,6 +2,7 @@ using System;
 using System.Collections.Immutable;
 using System.IO;
 using FsEqual.Core.Configuration;
+using FsEqual.Core.FileSystem.Providers;
 
 namespace FsEqual.Core.Options;
 
@@ -46,14 +47,31 @@ public sealed class CompareSettingsResolver
             throw new InvalidOperationException("Right path must be specified either via CLI or configuration unless a baseline manifest is provided.");
         }
 
+        var catalog = FileSystemProviderCatalog.Default;
+        var leftResolution = catalog.Resolve(left);
+        FileSystemResolution? rightResolution = null;
+
+        if (!string.IsNullOrWhiteSpace(right))
+        {
+            rightResolution = catalog.Resolve(right!);
+
+            if (!ReferenceEquals(rightResolution.FileSystem, leftResolution.FileSystem))
+            {
+                if (rightResolution.FileSystem.GetType() != leftResolution.FileSystem.GetType())
+                {
+                    throw new InvalidOperationException("Left and right sources must use the same file system provider. Multi-provider comparisons will arrive with the Phase 6 remote roadmap.");
+                }
+            }
+        }
+
         var mode = ParseMode(input.Mode ?? profile?.Mode ?? defaults.Mode);
         var algorithms = ResolveAlgorithms(input, profile, defaults, mode);
         var ignore = MergeArrays(defaults.Ignore, profile?.Ignore, input.IgnorePatterns);
 
         return new ResolvedCompareSettings
         {
-            LeftPath = Path.GetFullPath(left),
-            RightPath = string.IsNullOrWhiteSpace(right) ? null : Path.GetFullPath(right),
+            LeftPath = leftResolution.Path,
+            RightPath = rightResolution?.Path,
             Mode = mode,
             Algorithms = algorithms,
             IgnorePatterns = ignore,
@@ -81,7 +99,8 @@ public sealed class CompareSettingsResolver
                 ?? profile?.Verbosity
                 ?? defaults.Verbosity,
             UsesBaseline = false,
-            BaselineMetadata = null
+            BaselineMetadata = null,
+            FileSystem = leftResolution.FileSystem
         };
     }
 
