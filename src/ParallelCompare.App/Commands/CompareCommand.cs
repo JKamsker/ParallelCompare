@@ -9,17 +9,25 @@ using Spectre.Console.Cli;
 
 namespace ParallelCompare.App.Commands;
 
+/// <summary>
+/// Implements the <c>compare</c> command that compares two directories or a baseline.
+/// </summary>
 public sealed class CompareCommand : AsyncCommand<CompareCommandSettings>
 {
     private readonly ComparisonOrchestrator _orchestrator;
     private readonly DiffToolLauncher _diffLauncher;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CompareCommand"/> class.
+    /// </summary>
+    /// <param name="orchestrator">Service responsible for executing comparisons.</param>
     public CompareCommand(ComparisonOrchestrator orchestrator)
     {
         _orchestrator = orchestrator;
         _diffLauncher = new DiffToolLauncher();
     }
 
+    /// <inheritdoc />
     public override async Task<int> ExecuteAsync(CommandContext context, CompareCommandSettings settings)
     {
         var input = _orchestrator.BuildInput(settings);

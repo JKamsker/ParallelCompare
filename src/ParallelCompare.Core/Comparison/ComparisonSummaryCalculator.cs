@@ -2,8 +2,16 @@ using ParallelCompare.Core.Options;
 
 namespace ParallelCompare.Core.Comparison;
 
+/// <summary>
+/// Provides helper methods to compute comparison summary statistics.
+/// </summary>
 public static class ComparisonSummaryCalculator
 {
+    /// <summary>
+    /// Calculates summary metrics for the supplied comparison tree.
+    /// </summary>
+    /// <param name="root">Root node of the comparison tree.</param>
+    /// <returns>Aggregated summary values.</returns>
     public static ComparisonSummary Calculate(ComparisonNode root)
     {
         var totals = (total: 0, equal: 0, different: 0, leftOnly: 0, rightOnly: 0, error: 0);

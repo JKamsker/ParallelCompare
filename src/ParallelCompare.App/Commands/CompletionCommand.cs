@@ -3,8 +3,12 @@ using Spectre.Console.Cli;
 
 namespace ParallelCompare.App.Commands;
 
+/// <summary>
+/// Implements the <c>completion</c> command that prints shell completion scripts.
+/// </summary>
 public sealed class CompletionCommand : Command<CompletionCommandSettings>
 {
+    /// <inheritdoc />
     public override int Execute(CommandContext context, CompletionCommandSettings settings)
     {
         var script = GenerateScript(settings.Shell);

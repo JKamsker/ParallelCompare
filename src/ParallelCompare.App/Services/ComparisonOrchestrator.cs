@@ -11,6 +11,9 @@ using ParallelCompare.Core.Reporting;
 
 namespace ParallelCompare.App.Services;
 
+/// <summary>
+/// Coordinates configuration resolution, comparison execution, and exporting.
+/// </summary>
 public sealed class ComparisonOrchestrator
 {
     private readonly ConfigurationLoader _configurationLoader = new();
@@ -21,6 +24,11 @@ public sealed class ComparisonOrchestrator
     private readonly BaselineSnapshotGenerator _snapshotGenerator = new();
     private readonly BaselineManifestSerializer _baselineSerializer = new();
 
+    /// <summary>
+    /// Builds a <see cref="CompareSettingsInput"/> from raw command settings.
+    /// </summary>
+    /// <param name="settings">Settings supplied by the command.</param>
+    /// <returns>The normalized input record.</returns>
     public CompareSettingsInput BuildInput(CompareCommandSettings settings)
     {
         var algorithms = settings.Algorithms ?? Array.Empty<string>();
@@ -58,6 +66,12 @@ public sealed class ComparisonOrchestrator
         };
     }
 
+    /// <summary>
+    /// Resolves configuration, executes the comparison or baseline run, and writes exports.
+    /// </summary>
+    /// <param name="input">Comparison input describing the requested run.</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns>The comparison result and resolved settings.</returns>
     public async Task<(ComparisonResult Result, ResolvedCompareSettings Resolved)> RunAsync(
         CompareSettingsInput input,
         CancellationToken cancellationToken)
@@ -78,6 +92,12 @@ public sealed class ComparisonOrchestrator
         return (result, resolved);
     }
 
+    /// <summary>
+    /// Resolves the supplied input into concrete comparison settings without executing a run.
+    /// </summary>
+    /// <param name="input">Command-line input to resolve.</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns>The resolved comparison settings.</returns>
     public async Task<ResolvedCompareSettings> ResolveAsync(
         CompareSettingsInput input,
         CancellationToken cancellationToken)
@@ -87,6 +107,13 @@ public sealed class ComparisonOrchestrator
         return resolved with { UsesBaseline = false, BaselineMetadata = null };
     }
 
+    /// <summary>
+    /// Creates a baseline snapshot and writes it to the specified path.
+    /// </summary>
+    /// <param name="input">Comparison input describing what to snapshot.</param>
+    /// <param name="outputPath">Destination path for the manifest.</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns>The generated baseline manifest.</returns>
     public async Task<BaselineManifest> CreateSnapshotAsync(
         CompareSettingsInput input,
         string outputPath,

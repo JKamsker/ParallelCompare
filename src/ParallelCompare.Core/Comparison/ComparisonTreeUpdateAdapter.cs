@@ -6,6 +6,9 @@ using System.Linq;
 
 namespace ParallelCompare.Core.Comparison;
 
+/// <summary>
+/// Captures streaming comparison updates and publishes snapshot-friendly data for the interactive UI.
+/// </summary>
 public sealed class ComparisonTreeUpdateAdapter : IComparisonUpdateSink
 {
     private readonly object _sync = new();
@@ -15,6 +18,10 @@ public sealed class ComparisonTreeUpdateAdapter : IComparisonUpdateSink
     private string? _rootKey;
     private string? _pendingPath;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ComparisonTreeUpdateAdapter"/> class.
+    /// </summary>
+    /// <param name="caseSensitive">Indicates whether relative paths should be treated as case sensitive.</param>
     public ComparisonTreeUpdateAdapter(bool caseSensitive = false)
     {
         _pathComparer = caseSensitive ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
@@ -22,11 +29,26 @@ public sealed class ComparisonTreeUpdateAdapter : IComparisonUpdateSink
         _entries = new Dictionary<string, MutableEntry>(_pathComparer);
     }
 
+    /// <summary>
+    /// Gets the latest snapshot emitted from the adapter, if any.
+    /// </summary>
     public ComparisonTreeSnapshot? LatestSnapshot { get; private set; }
 
+    /// <summary>
+    /// Occurs when the snapshot representation is updated.
+    /// </summary>
     public event Action<ComparisonTreeSnapshot>? TreeUpdated;
+
+    /// <summary>
+    /// Occurs when a specific node update is available.
+    /// </summary>
     public event Action<ComparisonNode>? NodeUpdated;
 
+    /// <summary>
+    /// Signals that a directory has been discovered during comparison.
+    /// </summary>
+    /// <param name="relativePath">Directory path relative to the comparison root.</param>
+    /// <param name="name">Display name for the directory.</param>
     public void DirectoryDiscovered(string relativePath, string name)
     {
         lock (_sync)
@@ -42,6 +64,10 @@ public sealed class ComparisonTreeUpdateAdapter : IComparisonUpdateSink
         }
     }
 
+    /// <summary>
+    /// Signals that a comparison node has finished processing.
+    /// </summary>
+    /// <param name="node">The completed node.</param>
     public void NodeCompleted(ComparisonNode node)
     {
         lock (_sync)
@@ -265,6 +291,13 @@ public sealed class ComparisonTreeUpdateAdapter : IComparisonUpdateSink
 
     private sealed class MutableEntry
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MutableEntry"/> class.
+        /// </summary>
+        /// <param name="name">Entry name.</param>
+        /// <param name="relativePath">Path relative to the root.</param>
+        /// <param name="nodeType">Node type associated with the entry.</param>
+        /// <param name="pathComparer">Comparer used to track child paths.</param>
         public MutableEntry(string name, string relativePath, ComparisonNodeType nodeType, IEqualityComparer<string> pathComparer)
         {
             Name = name;
@@ -273,16 +306,48 @@ public sealed class ComparisonTreeUpdateAdapter : IComparisonUpdateSink
             Children = new HashSet<string>(pathComparer);
         }
 
+        /// <summary>
+        /// Gets or sets the entry name.
+        /// </summary>
         public string Name { get; set; }
+
+        /// <summary>
+        /// Gets the relative path for the entry.
+        /// </summary>
         public string RelativePath { get; }
+
+        /// <summary>
+        /// Gets or sets the node type represented by the entry.
+        /// </summary>
         public ComparisonNodeType NodeType { get; set; }
+
+        /// <summary>
+        /// Gets or sets the explicit status applied to the entry, if any.
+        /// </summary>
         public ComparisonStatus? ExplicitStatus { get; set; }
+
+        /// <summary>
+        /// Gets or sets file detail information when applicable.
+        /// </summary>
         public FileComparisonDetail? Detail { get; set; }
+
+        /// <summary>
+        /// Gets the child entry paths tracked for the node.
+        /// </summary>
         public HashSet<string> Children { get; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the entry has completed processing.
+        /// </summary>
         public bool IsCompleted { get; set; }
     }
 }
 
+/// <summary>
+/// Represents a snapshot of the comparison tree emitted by the update adapter.
+/// </summary>
+/// <param name="Root">Root node for the comparison tree.</param>
+/// <param name="Nodes">Lookup of nodes by their relative path.</param>
 public sealed record ComparisonTreeSnapshot(
     ComparisonNode Root,
     ImmutableDictionary<string, ComparisonNode> Nodes

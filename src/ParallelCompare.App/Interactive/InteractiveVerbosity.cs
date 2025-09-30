@@ -2,6 +2,9 @@ using System;
 
 namespace ParallelCompare.App.Interactive;
 
+/// <summary>
+/// Represents the log verbosity levels available in the interactive UI.
+/// </summary>
 public enum InteractiveVerbosity
 {
     Trace,
@@ -11,8 +14,16 @@ public enum InteractiveVerbosity
     Error
 }
 
+/// <summary>
+/// Helper methods for working with <see cref="InteractiveVerbosity"/> values.
+/// </summary>
 public static class InteractiveVerbosityExtensions
 {
+    /// <summary>
+    /// Parses a string into an <see cref="InteractiveVerbosity"/> value.
+    /// </summary>
+    /// <param name="value">Verbosity identifier (e.g. <c>debug</c>).</param>
+    /// <returns>The resolved verbosity.</returns>
     public static InteractiveVerbosity Parse(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -30,6 +41,11 @@ public static class InteractiveVerbosityExtensions
         };
     }
 
+    /// <summary>
+    /// Cycles to the next verbosity level.
+    /// </summary>
+    /// <param name="verbosity">Current verbosity.</param>
+    /// <returns>The next verbosity in the cycle.</returns>
     public static InteractiveVerbosity Next(this InteractiveVerbosity verbosity)
         => verbosity switch
         {
@@ -41,6 +57,11 @@ public static class InteractiveVerbosityExtensions
             _ => InteractiveVerbosity.Info
         };
 
+    /// <summary>
+    /// Converts the verbosity to a user-friendly display name.
+    /// </summary>
+    /// <param name="verbosity">Verbosity value.</param>
+    /// <returns>Human-readable display name.</returns>
     public static string ToDisplayName(this InteractiveVerbosity verbosity)
         => verbosity switch
         {
