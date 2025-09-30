@@ -15,6 +15,9 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>fsequal</ToolCommandName>
+    <PackageId>FSEqual</PackageId>
   </PropertyGroup>
 
 </Project>
