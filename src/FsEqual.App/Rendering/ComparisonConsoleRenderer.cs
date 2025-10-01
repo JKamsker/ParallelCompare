@@ -16,8 +16,13 @@ public static class ComparisonConsoleRenderer
     /// Renders the comparison context and summary metrics to the console.
     /// </summary>
     /// <param name="result">Comparison result to render.</param>
-    public static void RenderSummary(ComparisonResult result)
+    public static void RenderSummary(ComparisonResult result, bool quiet = false)
     {
+        if (quiet)
+        {
+            return;
+        }
+
         AnsiConsole.Write(BuildContextPanel(result));
 
         var summary = result.Summary;
@@ -40,8 +45,13 @@ public static class ComparisonConsoleRenderer
     /// </summary>
     /// <param name="result">Most recent comparison result.</param>
     /// <param name="resolved">Resolved settings used for the run.</param>
-    public static void RenderWatchStatus(ComparisonResult result, ResolvedCompareSettings resolved)
+    public static void RenderWatchStatus(ComparisonResult result, ResolvedCompareSettings resolved, bool quiet = false)
     {
+        if (quiet)
+        {
+            return;
+        }
+
         string message;
 
         if (resolved.UsesBaseline && result.Baseline is { } baseline)
@@ -62,8 +72,13 @@ public static class ComparisonConsoleRenderer
     /// </summary>
     /// <param name="result">Comparison result to display.</param>
     /// <param name="maxDepth">Maximum depth to expand within the tree.</param>
-    public static void RenderTree(ComparisonResult result, int maxDepth = 3)
+    public static void RenderTree(ComparisonResult result, int maxDepth = 3, bool quiet = false)
     {
+        if (quiet)
+        {
+            return;
+        }
+
         var tree = new Tree(GetNodeLabel(result.Root));
         BuildTree(tree.AddNode, result.Root, 1, maxDepth);
         AnsiConsole.Write(tree);

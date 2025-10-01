@@ -7,6 +7,7 @@ using FsEqual.Core.Baselines;
 using FsEqual.Core.Comparison;
 using FsEqual.Core.Configuration;
 using FsEqual.Core.Options;
+using FsEqual.Core.FileSystem;
 using FsEqual.Core.Reporting;
 
 namespace FsEqual.App.Services;
@@ -55,14 +56,16 @@ public sealed class ComparisonOrchestrator
             JsonReportPath = settings.JsonReport,
             SummaryReportPath = settings.SummaryReport,
             ExportFormat = settings.ExportFormat,
-            NoProgress = settings.NoProgress,
+            NoProgress = settings.NoProgress || settings.Quiet,
             DiffTool = settings.DiffTool,
             Profile = settings.Profile,
             ConfigurationPath = settings.ConfigurationPath,
             Verbosity = settings.Verbosity,
             FailOn = settings.FailOn,
             Timeout = settings.TimeoutSeconds.HasValue ? TimeSpan.FromSeconds(settings.TimeoutSeconds.Value) : null,
-            EnableInteractive = settings.Interactive
+            EnableInteractive = settings.Interactive,
+            Quiet = settings.Quiet,
+            DryRun = settings.DryRun
         };
     }
 
@@ -72,11 +75,17 @@ public sealed class ComparisonOrchestrator
     /// <param name="input">Comparison input describing the requested run.</param>
     /// <param name="cancellationToken">Token used to cancel the operation.</param>
     /// <returns>The comparison result and resolved settings.</returns>
-    public async Task<(ComparisonResult Result, ResolvedCompareSettings Resolved)> RunAsync(
+    public async Task<(ComparisonResult? Result, ResolvedCompareSettings Resolved)> RunAsync(
         CompareSettingsInput input,
         CancellationToken cancellationToken)
     {
         var resolved = await ResolveAsync(input, cancellationToken);
+
+        if (input.DryRun)
+        {
+            await ValidateDryRunAsync(resolved, cancellationToken);
+            return (null, resolved);
+        }
 
         ComparisonResult result;
         if (ShouldUseBaseline(resolved))
@@ -228,6 +237,46 @@ public sealed class ComparisonOrchestrator
 
     private static bool ShouldUseBaseline(ResolvedCompareSettings resolved)
         => !string.IsNullOrWhiteSpace(resolved.BaselinePath) && string.IsNullOrWhiteSpace(resolved.RightPath);
+
+    private async Task ValidateDryRunAsync(ResolvedCompareSettings resolved, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var fileSystem = resolved.FileSystem ?? PhysicalFileSystem.Instance;
+        if (!fileSystem.DirectoryExists(resolved.LeftPath))
+        {
+            throw new DirectoryNotFoundException($"Left directory '{resolved.LeftPath}' was not found.");
+        }
+
+        if (ShouldUseBaseline(resolved))
+        {
+            if (string.IsNullOrWhiteSpace(resolved.BaselinePath))
+            {
+                throw new InvalidOperationException("A baseline manifest path must be provided when running in baseline mode.");
+            }
+
+            var manifestPath = Path.GetFullPath(resolved.BaselinePath);
+            if (!fileSystem.FileExists(manifestPath))
+            {
+                throw new FileNotFoundException($"Baseline manifest '{manifestPath}' was not found.", manifestPath);
+            }
+
+            var manifest = await _baselineSerializer.ReadAsync(manifestPath, cancellationToken);
+            ValidateBaselineCompatibility(resolved, manifest);
+        }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(resolved.RightPath))
+            {
+                throw new InvalidOperationException("Right path must be provided when not using a baseline manifest.");
+            }
+
+            if (!fileSystem.DirectoryExists(resolved.RightPath))
+            {
+                throw new DirectoryNotFoundException($"Right directory '{resolved.RightPath}' was not found.");
+            }
+        }
+    }
 
     private static void ValidateBaselineCompatibility(ResolvedCompareSettings resolved, BaselineManifest manifest)
     {

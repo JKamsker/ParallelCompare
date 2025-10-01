@@ -117,6 +117,12 @@ public class CompareCommandSettings : CommandSettings
     public string? Verbosity { get; init; }
 
     /// <summary>
+    /// Gets a value indicating whether console output should be minimized.
+    /// </summary>
+    [CommandOption("-q|--quiet")]
+    public bool Quiet { get; init; }
+
+    /// <summary>
     /// Gets the failure condition expression used to determine the exit code.
     /// </summary>
     [CommandOption("--fail-on")]
@@ -127,6 +133,12 @@ public class CompareCommandSettings : CommandSettings
     /// </summary>
     [CommandOption("--timeout")]
     public int? TimeoutSeconds { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the comparison should validate inputs without executing.
+    /// </summary>
+    [CommandOption("--dry-run")]
+    public bool DryRun { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the interactive interface should start automatically.

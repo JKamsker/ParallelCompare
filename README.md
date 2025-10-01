@@ -38,6 +38,12 @@ fsequal watch ./src ./baseline --debounce 500
 
 # Capture a baseline manifest for regression testing
 fsequal snapshot ./src --output artifacts/baseline.json
+
+# Validate configuration without running the engine
+fsequal compare ./src ./baseline --dry-run
+
+# Produce exports silently for automation
+fsequal compare ./src ./baseline --quiet --summary artifacts/summary.json
 ```
 
 ## Command reference

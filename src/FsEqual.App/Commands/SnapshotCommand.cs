@@ -1,6 +1,8 @@
 using System;
+using System.IO;
 using System.Threading;
 using FsEqual.App.Services;
+using FsEqual.Core.FileSystem;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -37,6 +39,30 @@ public sealed class SnapshotCommand : AsyncCommand<SnapshotCommandSettings>
             RightPath = baseInput.LeftPath
         };
 
+        if (settings.DryRun)
+        {
+            var resolved = await _orchestrator.ResolveAsync(input, CancellationToken.None);
+
+            if (!(resolved.FileSystem ?? PhysicalFileSystem.Instance).DirectoryExists(resolved.LeftPath))
+            {
+                throw new DirectoryNotFoundException($"Left directory '{resolved.LeftPath}' was not found.");
+            }
+
+            var destination = Path.GetFullPath(settings.Output);
+            var destinationDirectory = Path.GetDirectoryName(destination);
+            if (!string.IsNullOrEmpty(destinationDirectory) && !Directory.Exists(destinationDirectory))
+            {
+                throw new DirectoryNotFoundException($"Output directory '{destinationDirectory}' does not exist.");
+            }
+
+            if (!settings.Quiet)
+            {
+                AnsiConsole.MarkupLine("[green]Dry run completed. Snapshot inputs validated successfully.[/]");
+            }
+
+            return 0;
+        }
+
         using var cancellation = new CancellationTokenSource();
         ConsoleCancelEventHandler? handler = null;
 
@@ -55,12 +81,18 @@ public sealed class SnapshotCommand : AsyncCommand<SnapshotCommandSettings>
             Console.CancelKeyPress += handler;
 
             var manifest = await _orchestrator.CreateSnapshotAsync(input, settings.Output, cancellation.Token);
-            AnsiConsole.MarkupLine($"[green]Snapshot written to {settings.Output} (captured {manifest.CreatedAt:u}).[/]");
+            if (!settings.Quiet)
+            {
+                AnsiConsole.MarkupLine($"[green]Snapshot written to {settings.Output} (captured {manifest.CreatedAt:u}).[/]");
+            }
             return 0;
         }
         catch (OperationCanceledException)
         {
-            AnsiConsole.MarkupLine("[yellow]Snapshot cancelled.[/]");
+            if (!settings.Quiet)
+            {
+                AnsiConsole.MarkupLine("[yellow]Snapshot cancelled.[/]");
+            }
             return 2;
         }
         catch (Exception ex)
