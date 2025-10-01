@@ -50,7 +50,9 @@ public sealed class WatchCommand : AsyncCommand<WatchCommandSettings>
             };
             Console.CancelKeyPress += handler;
 
-            var resolvedRun = await _orchestrator.RunAsync(input, cancellation.Token);
+            var resolvedRun = settings.NoProgress
+                ? await _orchestrator.RunAsync(input, cancellation.Token)
+                : await ComparisonProgressConsole.RunAsync(_orchestrator, input, cancellation.Token);
 
             if (settings.Interactive)
             {
@@ -211,7 +213,8 @@ public sealed class WatchCommand : AsyncCommand<WatchCommandSettings>
         ComparisonConsoleRenderer.RenderWatchStatus(result, resolved);
         if (!settings.Interactive)
         {
-            ComparisonConsoleRenderer.RenderTree(result, maxDepth: 2);
+            var summaryFilter = InteractiveFilterExtensions.Parse(resolved.SummaryFilter);
+            ComparisonConsoleRenderer.RenderTree(result, summaryFilter, maxDepth: 2);
         }
     }
 }

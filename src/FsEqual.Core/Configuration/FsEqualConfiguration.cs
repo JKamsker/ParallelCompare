@@ -104,6 +104,12 @@ public class CompareProfile
     public string? ExportFormat { get; init; }
 
     /// <summary>
+    /// Gets the summary filter applied when rendering console output.
+    /// </summary>
+    [JsonPropertyName("summaryFilter")]
+    public string? SummaryFilter { get; init; }
+
+    /// <summary>
     /// Gets a value indicating whether progress output should be suppressed.
     /// </summary>
     [JsonPropertyName("noProgress")]

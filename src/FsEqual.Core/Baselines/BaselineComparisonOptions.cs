@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Immutable;
 using System.Threading;
+using FsEqual.Core.Comparison;
 using FsEqual.Core.FileSystem;
 using FsEqual.Core.Options;
 
@@ -50,6 +51,11 @@ public sealed record BaselineComparisonOptions
     /// Gets the comparison mode that controls how files and directories are evaluated.
     /// </summary>
     public ComparisonMode Mode { get; init; }
+
+    /// <summary>
+    /// Gets the progress sink notified as files are processed.
+    /// </summary>
+    public IComparisonProgressSink? ProgressSink { get; init; }
 
     /// <summary>
     /// Gets the token used to observe cancellation requests during the comparison.

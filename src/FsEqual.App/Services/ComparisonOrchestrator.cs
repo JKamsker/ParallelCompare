@@ -62,7 +62,8 @@ public sealed class ComparisonOrchestrator
             Verbosity = settings.Verbosity,
             FailOn = settings.FailOn,
             Timeout = settings.TimeoutSeconds.HasValue ? TimeSpan.FromSeconds(settings.TimeoutSeconds.Value) : null,
-            EnableInteractive = settings.Interactive
+            EnableInteractive = settings.Interactive,
+            SummaryFilter = settings.SummaryFilter
         };
     }
 
@@ -74,18 +75,19 @@ public sealed class ComparisonOrchestrator
     /// <returns>The comparison result and resolved settings.</returns>
     public async Task<(ComparisonResult Result, ResolvedCompareSettings Resolved)> RunAsync(
         CompareSettingsInput input,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IComparisonProgressSink? progressSink = null)
     {
         var resolved = await ResolveAsync(input, cancellationToken);
 
         ComparisonResult result;
         if (ShouldUseBaseline(resolved))
         {
-            (result, resolved) = await RunBaselineComparisonAsync(resolved, cancellationToken);
+            (result, resolved) = await RunBaselineComparisonAsync(resolved, cancellationToken, progressSink);
         }
         else
         {
-            result = await RunStandardComparisonAsync(resolved, input.EnableInteractive, cancellationToken);
+            result = await RunStandardComparisonAsync(resolved, input.EnableInteractive, cancellationToken, progressSink);
         }
 
         await WriteExportsAsync(result, resolved, cancellationToken);
@@ -129,7 +131,8 @@ public sealed class ComparisonOrchestrator
     private async Task<ComparisonResult> RunStandardComparisonAsync(
         ResolvedCompareSettings resolved,
         bool enableInteractive,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IComparisonProgressSink? progressSink)
     {
         if (string.IsNullOrWhiteSpace(resolved.RightPath))
         {
@@ -155,7 +158,8 @@ public sealed class ComparisonOrchestrator
             NoProgress = resolved.NoProgress,
             DiffTool = resolved.DiffTool,
             CancellationToken = cancellationToken,
-            FileSystem = resolved.FileSystem
+            FileSystem = resolved.FileSystem,
+            ProgressSink = progressSink
         };
 
         return await _engine.CompareAsync(options);
@@ -163,7 +167,8 @@ public sealed class ComparisonOrchestrator
 
     private async Task<(ComparisonResult Result, ResolvedCompareSettings Resolved)> RunBaselineComparisonAsync(
         ResolvedCompareSettings resolved,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IComparisonProgressSink? progressSink)
     {
         if (string.IsNullOrWhiteSpace(resolved.BaselinePath))
         {
@@ -189,7 +194,8 @@ public sealed class ComparisonOrchestrator
             ModifiedTimeTolerance = resolved.ModifiedTimeTolerance,
             Mode = resolved.Mode,
             CancellationToken = cancellationToken,
-            FileSystem = resolved.FileSystem
+            FileSystem = resolved.FileSystem,
+            ProgressSink = progressSink
         };
 
         var result = await _baselineEngine.CompareAsync(options);

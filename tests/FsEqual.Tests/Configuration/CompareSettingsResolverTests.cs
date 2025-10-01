@@ -56,6 +56,7 @@ public sealed class CompareSettingsResolverTests
         resolved.Algorithms.Should().Contain(new[] { HashAlgorithmType.Crc32, HashAlgorithmType.XxHash64 });
         resolved.IgnorePatterns.Should().BeEquivalentTo(new[] { "*.tmp", "*.log", "build/*" });
         resolved.Threads.Should().Be(8);
+        resolved.SummaryFilter.Should().Be("differences");
     }
 
     [Fact]

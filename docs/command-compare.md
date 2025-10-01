@@ -27,10 +27,14 @@ fsequal compare <left> [right]
 | `--diff-tool <path>` | Launches an external diff tool when selecting files in the TUI. |
 | `--profile <name>` | Applies a named configuration profile. |
 | `--interactive` | Opens the Spectre.Console-powered inspector after the initial run. |
+| `--summary-filter <name>` | Chooses which nodes appear in the final tree (e.g. `differences`, `left`, `right`, `errors`, `all`). Defaults to `differences`. |
+| `--no-progress` | Suppresses the live progress panel that streams MB/s, files/s, totals, and pipeline counts. |
 | `--fail-on <policy>` | Controls the exit code (`any`, `diff`, or `error`). |
 | `--timeout <seconds>` | Aborts the run after the specified timeout. |
 
 For the complete option set, run `fsequal compare --help`.
+
+By default the CLI renders a live progress panel that reports left/right throughput in MB/s, files processed per second, total bytes read, and how many files remain in the pipeline. Use `--no-progress` to suppress the panel in CI logs.
 
 ## Examples
 

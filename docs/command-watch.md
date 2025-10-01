@@ -15,6 +15,7 @@ The `<left>` and optional `[right]` arguments match the semantics of `compare`. 
 | Option | Description |
 | --- | --- |
 | `--debounce <milliseconds>` | Waits for the specified quiet period before triggering a rerun (default `750`). |
+| `--summary-filter <name>` | Same as `compare`; defaults to `differences` so the watch tree only shows interesting nodes. |
 
 All other options from [`compare`](command-compare.md) are available, including exporters, diff tool integration, and interactive mode.
 
