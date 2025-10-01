@@ -102,7 +102,10 @@ public sealed class ComparisonOrchestrator
         CompareSettingsInput input,
         CancellationToken cancellationToken)
     {
-        var configuration = await _configurationLoader.LoadAsync(input.ConfigurationPath, cancellationToken);
+        var configurationPath = string.IsNullOrWhiteSpace(input.ConfigurationPath)
+            ? null
+            : input.ConfigurationPath;
+        var configuration = await _configurationLoader.LoadAsync(configurationPath, cancellationToken);
         var resolved = _resolver.Resolve(input, configuration);
         return resolved with { UsesBaseline = false, BaselineMetadata = null };
     }

@@ -40,6 +40,16 @@ fsequal watch ./src ./baseline --debounce 500
 fsequal snapshot ./src --output artifacts/baseline.json
 ```
 
+## Configuration discovery
+
+FsEqual automatically resolves configuration files when `--config` is not supplied. The loader searches in the following order:
+
+1. The working directory and each parent for `fsequal.config.json` or `.fsequal/config.json`.
+2. User-level folders such as `$XDG_CONFIG_HOME/fsequal/`, `%APPDATA%/fsequal/`, `%LOCALAPPDATA%/fsequal/`, or `~/.fsequal/`.
+3. Finally, the home directory itself for `fsequal.config.json`.
+
+If a configuration file is found but fails validation (for example, negative thread counts or malformed profiles), the CLI prints each violation so issues can be corrected quickly before rerunning.
+
 ## Command reference
 
 | Command | Description |
