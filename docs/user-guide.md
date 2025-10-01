@@ -151,6 +151,10 @@ Exporters run incrementally during interactive sessions to keep reports up to da
    fsequal compare A B --diff "code --diff {left} {right}" --interactive
    ```
 
+## Remote comparisons roadmap
+
+The Phase 6 plan introduces remote file system support so teams can diff workspaces that live behind SSH endpoints without manually syncing directories. The CLI already accepts scheme-prefixed URIs—`fsequal compare ssh://user@host:/srv/app ssh://user@host:/srv/app-next`—and routes them through file system providers. Until the remote transport, authentication, and caching layers land, the bundled SSH provider throws a `NotImplementedException` that points back to this roadmap. Local paths continue to resolve through the physical provider as before.
+
 ## Troubleshooting
 
 - Set `--verbosity trace` to capture detailed diagnostics.

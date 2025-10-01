@@ -32,6 +32,12 @@ fsequal compare <left> [right]
 
 For the complete option set, run `fsequal compare --help`.
 
+### Remote sources (preview syntax)
+
+Source arguments now accept scheme-prefixed URIs in preparation for Phase 6 remote comparisons. For example, the left and right inputs may be written as `ssh://user@host:/path/to/tree`. The CLI routes these URIs through registered file system providers.
+
+> **Note**: The SSH provider is currently a stub that raises a `NotImplementedException` describing the Phase 6 roadmap. Remote execution is intentionally blocked until the remaining transport and security work ships.
+
 ## Examples
 
 Compare two directories, ignore build output, and open the interactive inspector:
