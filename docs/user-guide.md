@@ -154,7 +154,8 @@ Exporters run incrementally during interactive sessions to keep reports up to da
 ## Troubleshooting
 
 - Set `--verbosity trace` to capture detailed diagnostics.
-- Use `--no-progress` in CI to avoid control characters in logs.
+- Use `--no-progress` in CI to avoid control characters in logs; otherwise the live panel streams MB/s, files/s, total bytes, and queued files in real time.
+- Switch the final tree with `--summary-filter all|differences|left|right|errors` when you need more or less detail.
 - If diff tools are not discovered automatically, specify the absolute path via `--diff`.
 - When running over network shares, consider `--hash sha256` for stronger verification.
 

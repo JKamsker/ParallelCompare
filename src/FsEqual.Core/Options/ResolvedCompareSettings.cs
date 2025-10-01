@@ -75,6 +75,11 @@ public sealed record ResolvedCompareSettings
     public string? ExportFormat { get; init; }
 
     /// <summary>
+    /// Gets the summary filter applied when rendering console trees.
+    /// </summary>
+    public string? SummaryFilter { get; init; }
+
+    /// <summary>
     /// Gets a value indicating whether progress output should be suppressed.
     /// </summary>
     public bool NoProgress { get; init; }

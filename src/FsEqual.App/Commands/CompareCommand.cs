@@ -50,8 +50,7 @@ public sealed class CompareCommand : AsyncCommand<CompareCommandSettings>
 
             (var result, var resolved) = settings.NoProgress
                 ? await _orchestrator.RunAsync(input, cancellation.Token)
-                : await AnsiConsole.Status()
-                    .StartAsync("Comparing directories...", async _ => await _orchestrator.RunAsync(input, cancellation.Token));
+                : await ComparisonProgressConsole.RunAsync(_orchestrator, input, cancellation.Token);
 
             ComparisonConsoleRenderer.RenderSummary(result);
 
@@ -61,7 +60,8 @@ public sealed class CompareCommand : AsyncCommand<CompareCommandSettings>
             }
             else
             {
-                ComparisonConsoleRenderer.RenderTree(result);
+                var summaryFilter = InteractiveFilterExtensions.Parse(resolved.SummaryFilter);
+                ComparisonConsoleRenderer.RenderTree(result, summaryFilter);
             }
 
             return DetermineExitCode(resolved.FailOn, result);

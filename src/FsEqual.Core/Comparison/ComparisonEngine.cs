@@ -65,7 +65,8 @@ public sealed class ComparisonEngine
             rightDirectory,
             matcher,
             options,
-            cancellationToken);
+            cancellationToken,
+            options.ProgressSink);
 
         var summary = ComparisonSummaryCalculator.Calculate(root);
         return new ComparisonResult(
@@ -82,7 +83,8 @@ public sealed class ComparisonEngine
         IDirectoryEntry right,
         Matcher? matcher,
         ComparisonOptions options,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IComparisonProgressSink? progressSink)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -112,6 +114,14 @@ public sealed class ComparisonEngine
             })
             .ToArray();
 
+        if (progressSink is not null)
+        {
+            foreach (var item in workItems)
+            {
+                NotifyFileDiscovered(item, progressSink);
+            }
+        }
+
         var parallelOptions = CreateParallelOptions(options, cancellationToken);
         Parallel.ForEach(workItems, parallelOptions, item =>
         {
@@ -119,11 +129,17 @@ public sealed class ComparisonEngine
                 item,
                 matcher,
                 options,
-                cancellationToken);
+                cancellationToken,
+                progressSink);
 
             if (updateSink is not null && item.Node is not null)
             {
                 updateSink.NodeCompleted(item.Node);
+            }
+
+            if (progressSink is not null && item.Node is { NodeType: ComparisonNodeType.File } node)
+            {
+                progressSink.FileCompleted(node.RelativePath, node.Status);
             }
         });
 
@@ -153,7 +169,8 @@ public sealed class ComparisonEngine
         EntryWorkItem item,
         Matcher? matcher,
         ComparisonOptions options,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IComparisonProgressSink? progressSink)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -169,7 +186,8 @@ public sealed class ComparisonEngine
                 rightDir,
                 matcher,
                 options,
-                cancellationToken);
+                cancellationToken,
+                progressSink);
         }
 
         if (leftDir is not null && item.Right is IFileEntry rightFile)
@@ -201,7 +219,8 @@ public sealed class ComparisonEngine
                 ComparisonStatus.LeftOnly,
                 matcher,
                 cancellationToken,
-                options.UpdateSink);
+                options.UpdateSink,
+                progressSink);
         }
 
         if (rightDir is not null)
@@ -213,7 +232,8 @@ public sealed class ComparisonEngine
                 ComparisonStatus.RightOnly,
                 matcher,
                 cancellationToken,
-                options.UpdateSink);
+                options.UpdateSink,
+                progressSink);
         }
 
         return CompareFile(
@@ -222,7 +242,8 @@ public sealed class ComparisonEngine
             item.Left as IFileEntry,
             item.Right as IFileEntry,
             options,
-            cancellationToken);
+            cancellationToken,
+            progressSink);
     }
 
     private static ParallelOptions CreateParallelOptions(ComparisonOptions options, CancellationToken cancellationToken)
@@ -244,7 +265,8 @@ public sealed class ComparisonEngine
         IFileEntry? left,
         IFileEntry? right,
         ComparisonOptions options,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IComparisonProgressSink? progressSink)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -291,7 +313,7 @@ public sealed class ComparisonEngine
 
         try
         {
-            var status = CompareFileContents(left, right, options, cancellationToken, out var detail);
+            var status = CompareFileContents(left, right, options, cancellationToken, progressSink, out var detail);
             return new ComparisonNode(
                 displayName,
                 relativePath,
@@ -324,6 +346,7 @@ public sealed class ComparisonEngine
         IFileEntry right,
         ComparisonOptions options,
         CancellationToken cancellationToken,
+        IComparisonProgressSink? progressSink,
         out FileComparisonDetail detail)
     {
         IReadOnlyDictionary<HashAlgorithmType, string>? leftHashes = null;
@@ -350,7 +373,7 @@ public sealed class ComparisonEngine
 
         if (options.HashAlgorithms.IsDefaultOrEmpty)
         {
-            if (!FilesBinaryEqual(left, right, cancellationToken))
+            if (!FilesBinaryEqual(left, right, cancellationToken, progressSink))
             {
                 detail = new FileComparisonDetail(
                     left.Length,
@@ -374,8 +397,18 @@ public sealed class ComparisonEngine
             return ComparisonStatus.Equal;
         }
 
-        leftHashes = _hashCalculator.ComputeHashes(left, options.HashAlgorithms, cancellationToken);
-        rightHashes = _hashCalculator.ComputeHashes(right, options.HashAlgorithms, cancellationToken);
+        leftHashes = _hashCalculator.ComputeHashes(
+            left,
+            options.HashAlgorithms,
+            cancellationToken,
+            progressSink,
+            ComparisonSide.Left);
+        rightHashes = _hashCalculator.ComputeHashes(
+            right,
+            options.HashAlgorithms,
+            cancellationToken,
+            progressSink,
+            ComparisonSide.Right);
 
         var status = HashesEqual(leftHashes, rightHashes)
             ? ComparisonStatus.Equal
@@ -392,7 +425,11 @@ public sealed class ComparisonEngine
         return status;
     }
 
-    private static bool FilesBinaryEqual(IFileEntry left, IFileEntry right, CancellationToken cancellationToken)
+    private static bool FilesBinaryEqual(
+        IFileEntry left,
+        IFileEntry right,
+        CancellationToken cancellationToken,
+        IComparisonProgressSink? progressSink)
     {
         const int BufferSize = 8192;
         using var leftStream = left.OpenRead();
@@ -414,6 +451,12 @@ public sealed class ComparisonEngine
             if (leftRead != rightRead)
             {
                 return false;
+            }
+
+            if (leftRead > 0)
+            {
+                progressSink?.BytesRead(ComparisonSide.Left, leftRead);
+                progressSink?.BytesRead(ComparisonSide.Right, rightRead);
             }
 
             for (var i = 0; i < leftRead; i++)
@@ -551,7 +594,8 @@ public sealed class ComparisonEngine
         ComparisonStatus status,
         Matcher? matcher,
         CancellationToken cancellationToken,
-        IComparisonUpdateSink? updateSink)
+        IComparisonUpdateSink? updateSink,
+        IComparisonProgressSink? progressSink)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -576,12 +620,18 @@ public sealed class ComparisonEngine
                     status,
                     matcher,
                     cancellationToken,
-                    updateSink);
+                    updateSink,
+                    progressSink);
                 children.Add(childNode);
                 updateSink?.NodeCompleted(childNode);
             }
             else if (entry is IFileEntry file)
             {
+                progressSink?.FileDiscovered(
+                    childRelativePath,
+                    status == ComparisonStatus.LeftOnly ? file.Length : null,
+                    status == ComparisonStatus.RightOnly ? file.Length : null);
+
                 var detail = status == ComparisonStatus.LeftOnly
                     ? new FileComparisonDetail(file.Length, null, file.LastWriteTimeUtc, null, null, null, null)
                     : new FileComparisonDetail(null, file.Length, null, file.LastWriteTimeUtc, null, null, null);
@@ -595,6 +645,7 @@ public sealed class ComparisonEngine
                     ImmutableArray<ComparisonNode>.Empty);
                 children.Add(fileNode);
                 updateSink?.NodeCompleted(fileNode);
+                progressSink?.FileCompleted(childRelativePath, status);
             }
         }
 
@@ -607,6 +658,22 @@ public sealed class ComparisonEngine
             children.ToImmutableArray());
 
         return directoryNode;
+    }
+
+    private static void NotifyFileDiscovered(EntryWorkItem item, IComparisonProgressSink progressSink)
+    {
+        var leftFile = item.Left as IFileEntry;
+        var rightFile = item.Right as IFileEntry;
+
+        if (leftFile is null && rightFile is null)
+        {
+            return;
+        }
+
+        progressSink.FileDiscovered(
+            item.RelativePath,
+            leftFile?.Length,
+            rightFile?.Length);
     }
 
     private ComparisonNode BuildTypeMismatchNode(

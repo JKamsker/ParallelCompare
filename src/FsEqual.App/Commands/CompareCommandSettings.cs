@@ -111,6 +111,12 @@ public class CompareCommandSettings : CommandSettings
     public string? ConfigurationPath { get; init; }
 
     /// <summary>
+    /// Gets the summary filter applied when rendering tree output.
+    /// </summary>
+    [CommandOption("--summary-filter")]
+    public string? SummaryFilter { get; init; }
+
+    /// <summary>
     /// Gets the desired verbosity level for console output.
     /// </summary>
     [CommandOption("--verbosity")]

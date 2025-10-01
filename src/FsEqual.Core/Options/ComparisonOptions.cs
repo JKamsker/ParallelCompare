@@ -95,6 +95,11 @@ public sealed record ComparisonOptions
     public IComparisonUpdateSink? UpdateSink { get; init; }
 
     /// <summary>
+    /// Gets the progress sink notified as the comparison executes.
+    /// </summary>
+    public IComparisonProgressSink? ProgressSink { get; init; }
+
+    /// <summary>
     /// Gets the cancellation token observed during execution.
     /// </summary>
     public CancellationToken CancellationToken { get; init; } = CancellationToken.None;

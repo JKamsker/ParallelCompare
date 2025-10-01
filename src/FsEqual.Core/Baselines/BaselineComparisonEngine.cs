@@ -59,7 +59,8 @@ public sealed class BaselineComparisonEngine
             manifest.Root,
             matcher,
             options,
-            cancellationToken);
+            cancellationToken,
+            options.ProgressSink);
 
         var summary = ComparisonSummaryCalculator.Calculate(root);
         var metadata = new BaselineMetadata(
@@ -83,7 +84,8 @@ public sealed class BaselineComparisonEngine
         BaselineEntry baseline,
         Matcher? matcher,
         BaselineComparisonOptions options,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IComparisonProgressSink? progressSink)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -105,58 +107,90 @@ public sealed class BaselineComparisonEngine
                 ? name
                 : Path.Combine(relativePath, name);
 
+            var discoveryReported = false;
+            if (progressSink is not null)
+            {
+                var leftFile = leftInfo as IFileEntry;
+                long? baselineSize = baselineEntry?.IsFile == true ? baselineEntry.Size : null;
+                if (leftFile is not null || baselineSize is not null)
+                {
+                    progressSink.FileDiscovered(childRelativePath, leftFile?.Length, baselineSize);
+                    discoveryReported = true;
+                }
+            }
+
+            ComparisonNode? child = null;
             if (leftInfo is IDirectoryEntry leftDirectory)
             {
                 if (baselineEntry?.IsDirectory == true)
                 {
-                    children.Add(CompareDirectory(
+                    child = CompareDirectory(
                         childRelativePath,
                         name,
                         leftDirectory,
                         baselineEntry,
                         matcher,
                         options,
-                        cancellationToken));
+                        cancellationToken,
+                        progressSink);
                 }
                 else if (baselineEntry is null)
                 {
-                    children.Add(BuildLeftOnlyDirectory(
+                    child = BuildLeftOnlyDirectory(
                         leftDirectory,
                         childRelativePath,
                         name,
                         matcher,
                         options,
-                        cancellationToken));
+                        cancellationToken,
+                        progressSink);
                 }
                 else
                 {
-                    children.Add(BuildTypeMismatchNode(name, childRelativePath, leftDirectory, baselineEntry));
+                    child = BuildTypeMismatchNode(name, childRelativePath, leftDirectory, baselineEntry);
                 }
             }
             else if (leftInfo is IFileEntry leftFile)
             {
                 if (baselineEntry?.IsFile == true)
                 {
-                    children.Add(CompareFile(leftFile, baselineEntry, childRelativePath, name, options, cancellationToken));
+                    child = CompareFile(
+                        leftFile,
+                        baselineEntry,
+                        childRelativePath,
+                        name,
+                        options,
+                        cancellationToken,
+                        progressSink);
                 }
                 else if (baselineEntry is null)
                 {
-                    children.Add(BuildLeftOnlyFile(leftFile, childRelativePath, name));
+                    child = BuildLeftOnlyFile(leftFile, childRelativePath, name);
                 }
                 else
                 {
-                    children.Add(BuildTypeMismatchNode(name, childRelativePath, leftFile, baselineEntry));
+                    child = BuildTypeMismatchNode(name, childRelativePath, leftFile, baselineEntry);
                 }
             }
             else if (baselineEntry is not null)
             {
                 if (baselineEntry.IsDirectory)
                 {
-                    children.Add(BuildBaselineOnlyDirectory(baselineEntry, childRelativePath));
+                    child = BuildBaselineOnlyDirectory(baselineEntry, childRelativePath, progressSink);
                 }
                 else
                 {
-                    children.Add(BuildBaselineOnlyFile(baselineEntry, childRelativePath));
+                    child = BuildBaselineOnlyFileWithProgress(baselineEntry, childRelativePath, progressSink, discoveryReported);
+                }
+            }
+
+            if (child is not null)
+            {
+                children.Add(child);
+
+                if (child.NodeType == ComparisonNodeType.File)
+                {
+                    progressSink?.FileCompleted(child.RelativePath, child.Status);
                 }
             }
         }
@@ -181,7 +215,8 @@ public sealed class BaselineComparisonEngine
         string relativePath,
         string displayName,
         BaselineComparisonOptions options,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IComparisonProgressSink? progressSink)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -191,7 +226,12 @@ public sealed class BaselineComparisonEngine
 
         if (!algorithms.IsDefaultOrEmpty)
         {
-            leftHashes = _hashCalculator.ComputeHashes(left, algorithms, cancellationToken);
+            leftHashes = _hashCalculator.ComputeHashes(
+                left,
+                algorithms,
+                cancellationToken,
+                progressSink,
+                ComparisonSide.Left);
             baselineHashes = algorithms.ToDictionary(
                 algorithm => algorithm,
                 algorithm => baseline.Hashes.TryGetValue(algorithm, out var value)
@@ -264,7 +304,8 @@ public sealed class BaselineComparisonEngine
         string displayName,
         Matcher? matcher,
         BaselineComparisonOptions options,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IComparisonProgressSink? progressSink)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -282,12 +323,22 @@ public sealed class BaselineComparisonEngine
 
             if (entry is IDirectoryEntry childDirectory)
             {
-                var child = BuildLeftOnlyDirectory(childDirectory, childRelative, entry.Name, matcher, options, cancellationToken);
+                var child = BuildLeftOnlyDirectory(
+                    childDirectory,
+                    childRelative,
+                    entry.Name,
+                    matcher,
+                    options,
+                    cancellationToken,
+                    progressSink);
                 children.Add(child);
             }
             else if (entry is IFileEntry file)
             {
-                children.Add(BuildLeftOnlyFile(file, childRelative, entry.Name));
+                progressSink?.FileDiscovered(childRelative, file.Length, null);
+                var node = BuildLeftOnlyFile(file, childRelative, entry.Name);
+                children.Add(node);
+                progressSink?.FileCompleted(childRelative, node.Status);
             }
         }
 
@@ -300,7 +351,7 @@ public sealed class BaselineComparisonEngine
             children.ToImmutableArray());
     }
 
-    private ComparisonNode BuildBaselineOnlyDirectory(BaselineEntry entry, string relativePath)
+    private ComparisonNode BuildBaselineOnlyDirectory(BaselineEntry entry, string relativePath, IComparisonProgressSink? progressSink)
     {
         var children = entry.Children.Select(child =>
         {
@@ -309,8 +360,8 @@ public sealed class BaselineComparisonEngine
                 : Path.Combine(relativePath, child.Name);
 
             return child.IsDirectory
-                ? BuildBaselineOnlyDirectory(child, childRelative)
-                : BuildBaselineOnlyFile(child, childRelative);
+                ? BuildBaselineOnlyDirectory(child, childRelative, progressSink)
+                : BuildBaselineOnlyFileWithProgress(child, childRelative, progressSink);
         }).ToImmutableArray();
 
         return new ComparisonNode(
@@ -320,6 +371,22 @@ public sealed class BaselineComparisonEngine
             ComparisonStatus.RightOnly,
             null,
             children);
+    }
+
+    private ComparisonNode BuildBaselineOnlyFileWithProgress(
+        BaselineEntry entry,
+        string relativePath,
+        IComparisonProgressSink? progressSink,
+        bool discoveryReported = false)
+    {
+        if (!discoveryReported)
+        {
+            progressSink?.FileDiscovered(relativePath, null, entry.Size);
+        }
+
+        var node = BuildBaselineOnlyFile(entry, relativePath);
+        progressSink?.FileCompleted(relativePath, node.Status);
+        return node;
     }
 
     private static ComparisonNode BuildLeftOnlyFile(IFileEntry file, string relativePath, string displayName)

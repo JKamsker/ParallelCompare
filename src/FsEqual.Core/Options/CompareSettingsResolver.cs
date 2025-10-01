@@ -67,6 +67,7 @@ public sealed class CompareSettingsResolver
             JsonReportPath = input.JsonReportPath ?? profile?.JsonReport ?? defaults.JsonReport,
             SummaryReportPath = input.SummaryReportPath ?? profile?.SummaryReport ?? defaults.SummaryReport,
             ExportFormat = input.ExportFormat ?? profile?.ExportFormat ?? defaults.ExportFormat,
+            SummaryFilter = input.SummaryFilter ?? profile?.SummaryFilter ?? defaults.SummaryFilter ?? "differences",
             NoProgress = input.NoProgress || profile?.NoProgress == true || defaults.NoProgress == true,
             DiffTool = input.DiffTool ?? profile?.DiffTool ?? defaults.DiffTool,
             Verbosity = input.Verbosity ?? profile?.Verbosity ?? defaults.Verbosity,

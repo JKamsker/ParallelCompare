@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using FsEqual.App.Interactive;
 using FsEqual.Core.Comparison;
 using FsEqual.Core.Options;
 using Spectre.Console;
@@ -62,10 +63,23 @@ public static class ComparisonConsoleRenderer
     /// </summary>
     /// <param name="result">Comparison result to display.</param>
     /// <param name="maxDepth">Maximum depth to expand within the tree.</param>
-    public static void RenderTree(ComparisonResult result, int maxDepth = 3)
+    public static void RenderTree(ComparisonResult result, InteractiveFilter filter, int maxDepth = 3)
     {
+        if (!ShouldIncludeNode(result.Root, filter))
+        {
+            AnsiConsole.MarkupLine("[grey]No entries matched the selected filter.[/]");
+            return;
+        }
+
         var tree = new Tree(GetNodeLabel(result.Root));
-        BuildTree(tree.AddNode, result.Root, 1, maxDepth);
+        var hasChildren = BuildTree(tree.AddNode, result.Root, 1, maxDepth, filter);
+
+        if (!hasChildren)
+        {
+            AnsiConsole.MarkupLine("[grey]No entries matched the selected filter.[/]");
+            return;
+        }
+
         AnsiConsole.Write(tree);
     }
 
@@ -97,23 +111,38 @@ public static class ComparisonConsoleRenderer
             .Header(" Context ");
     }
 
-    private static void BuildTree(Func<string, TreeNode> addNode, ComparisonNode node, int depth, int maxDepth)
+    private static bool BuildTree(
+        Func<string, TreeNode> addNode,
+        ComparisonNode node,
+        int depth,
+        int maxDepth,
+        InteractiveFilter filter)
     {
         if (depth > maxDepth)
         {
-            if (node.Children.Length > 0)
+            if (node.Children.Any(child => ShouldIncludeNode(child, filter)))
             {
                 addNode("[grey]…[/]");
+                return true;
             }
 
-            return;
+            return false;
         }
 
+        var addedAny = false;
         foreach (var child in node.Children)
         {
+            if (!ShouldIncludeNode(child, filter))
+            {
+                continue;
+            }
+
             var childNode = addNode(GetNodeLabel(child));
-            BuildTree(childNode.AddNode, child, depth + 1, maxDepth);
+            addedAny = true;
+            BuildTree(childNode.AddNode, child, depth + 1, maxDepth, filter);
         }
+
+        return addedAny;
     }
 
     private static string GetNodeLabel(ComparisonNode node)
@@ -131,5 +160,40 @@ public static class ComparisonConsoleRenderer
         return node.NodeType == ComparisonNodeType.Directory
             ? $"{node.Name} ({status})"
             : $"{node.Name} - {status}";
+    }
+
+    private static bool ShouldIncludeNode(ComparisonNode node, InteractiveFilter filter)
+    {
+        if (filter == InteractiveFilter.All)
+        {
+            return true;
+        }
+
+        var matches = filter switch
+        {
+            InteractiveFilter.Differences => node.Status is ComparisonStatus.Different or ComparisonStatus.LeftOnly or ComparisonStatus.RightOnly or ComparisonStatus.Error,
+            InteractiveFilter.LeftOnly => node.Status == ComparisonStatus.LeftOnly,
+            InteractiveFilter.RightOnly => node.Status == ComparisonStatus.RightOnly,
+            InteractiveFilter.Errors => node.Status == ComparisonStatus.Error,
+            _ => true
+        };
+
+        if (matches)
+        {
+            return true;
+        }
+
+        if (node.NodeType == ComparisonNodeType.Directory)
+        {
+            foreach (var child in node.Children)
+            {
+                if (ShouldIncludeNode(child, filter))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }
