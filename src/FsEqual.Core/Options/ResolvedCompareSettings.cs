@@ -70,6 +70,21 @@ public sealed record ResolvedCompareSettings
     public string? SummaryReportPath { get; init; }
 
     /// <summary>
+    /// Gets the CSV report output path.
+    /// </summary>
+    public string? CsvReportPath { get; init; }
+
+    /// <summary>
+    /// Gets the Markdown report output path.
+    /// </summary>
+    public string? MarkdownReportPath { get; init; }
+
+    /// <summary>
+    /// Gets the HTML report output path.
+    /// </summary>
+    public string? HtmlReportPath { get; init; }
+
+    /// <summary>
     /// Gets the named export format bundle.
     /// </summary>
     public string? ExportFormat { get; init; }
