@@ -49,6 +49,9 @@ public sealed class CompareSettingsResolver
         var mode = ParseMode(input.Mode ?? profile?.Mode ?? defaults.Mode);
         var algorithms = ResolveAlgorithms(input, profile, defaults, mode);
         var ignore = MergeArrays(defaults.Ignore, profile?.Ignore, input.IgnorePatterns);
+        var debounce = input.DebounceMilliseconds
+            ?? profile?.DebounceMilliseconds
+            ?? defaults.DebounceMilliseconds;
 
         return new ResolvedCompareSettings
         {
@@ -57,6 +60,7 @@ public sealed class CompareSettingsResolver
             Mode = mode,
             Algorithms = algorithms,
             IgnorePatterns = ignore,
+            WatchDebounceMilliseconds = debounce,
             CaseSensitive = input.CaseSensitive ?? profile?.CaseSensitive ?? defaults.CaseSensitive ?? false,
             FollowSymlinks = input.FollowSymlinks ?? profile?.FollowSymlinks ?? defaults.FollowSymlinks ?? false,
             ModifiedTimeTolerance = input.ModifiedTimeTolerance

@@ -8,8 +8,14 @@ namespace FsEqual.App.Commands;
 public sealed class WatchCommandSettings : CompareCommandSettings
 {
     /// <summary>
-    /// Gets the debounce interval, in milliseconds, between watch-triggered reruns.
+    /// Gets the optional debounce interval, in milliseconds, between watch-triggered reruns.
+    /// Defaults to <see cref="DefaultDebounceMilliseconds"/> when not specified via CLI or configuration.
     /// </summary>
     [CommandOption("--debounce <MILLISECONDS>")]
-    public int DebounceMilliseconds { get; init; } = 750;
+    public int? DebounceMilliseconds { get; init; }
+
+    /// <summary>
+    /// Gets the default debounce interval applied when neither CLI nor configuration specify a value.
+    /// </summary>
+    public const int DefaultDebounceMilliseconds = 750;
 }

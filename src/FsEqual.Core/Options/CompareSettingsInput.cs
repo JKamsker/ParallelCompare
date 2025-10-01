@@ -131,4 +131,9 @@ public sealed record CompareSettingsInput
     /// Gets the verbosity level for interactive logging panes.
     /// </summary>
     public string? InteractiveVerbosity { get; init; }
+
+    /// <summary>
+    /// Gets the debounce interval, in milliseconds, requested for watch mode reruns.
+    /// </summary>
+    public int? DebounceMilliseconds { get; init; }
 }

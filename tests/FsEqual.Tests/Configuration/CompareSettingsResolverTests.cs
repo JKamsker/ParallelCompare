@@ -91,4 +91,63 @@ public sealed class CompareSettingsResolverTests
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("Profile 'missing' was not found in the configuration file.");
     }
+
+    [Fact]
+    public void Resolve_WithConfigurationDebounce_UsesConfiguredValue()
+    {
+        var configuration = new FsEqualConfiguration
+        {
+            Defaults = new CompareProfile
+            {
+                Left = "defaults/left",
+                Right = "defaults/right",
+                DebounceMilliseconds = 1500
+            }
+        };
+
+        var input = new CompareSettingsInput
+        {
+            LeftPath = "defaults/left",
+            RightPath = "defaults/right"
+        };
+
+        var resolver = new CompareSettingsResolver();
+        var resolved = resolver.Resolve(input, configuration);
+
+        resolved.WatchDebounceMilliseconds.Should().Be(1500);
+    }
+
+    [Fact]
+    public void Resolve_WithCliDebounce_OverridesConfiguration()
+    {
+        var configuration = new FsEqualConfiguration
+        {
+            Defaults = new CompareProfile
+            {
+                Left = "defaults/left",
+                Right = "defaults/right",
+                DebounceMilliseconds = 2000
+            },
+            Profiles =
+            {
+                ["ci"] = new CompareProfile
+                {
+                    DebounceMilliseconds = 1400
+                }
+            }
+        };
+
+        var input = new CompareSettingsInput
+        {
+            LeftPath = "cli/left",
+            RightPath = "cli/right",
+            Profile = "ci",
+            DebounceMilliseconds = 320
+        };
+
+        var resolver = new CompareSettingsResolver();
+        var resolved = resolver.Resolve(input, configuration);
+
+        resolved.WatchDebounceMilliseconds.Should().Be(320);
+    }
 }
